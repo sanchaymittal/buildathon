@@ -1,0 +1,32 @@
+# Xerant
+
+> Xerant is a sandboxed multi-agent DevOps platform. Five specialized AI agents — Axiom, Forge, Warden, Vector, Sentry — handle the full deploy lifecycle (plan, code, security review, ship, observe). Each agent runs in its own gVisor-style sandbox with role-scoped authority. Ship 60% cheaper than a three-engineer DevOps rotation, with intelligence-grade isolation per agent.
+
+Xerant differs from single-agent tools (GitHub Agentic Workflows, Copilot Workspace, Devin) by operating as a **coordinated team with mediated handoffs and independent rollback authority**, not a single ReAct loop. A compromised Warden cannot reach Vector's deploy keys.
+
+Free while in beta. Sign in with GitHub to get started.
+
+## Canonical pages
+
+- [Homepage](https://xerant.vercel.app/): product overview, the five agents, comparison to Vercel and Netlify, pricing, FAQ
+- [Sign in](https://xerant.vercel.app/signin): GitHub OAuth entry
+- [GitHub repo](https://github.com/sanchaymittal/xerant): source
+
+## The five agents
+
+- **Axiom — Orchestrator.** Receives the task, decomposes it, assigns work, holds shared state across the team. Tools: Linear, GitHub, Slack.
+- **Forge — Staff Engineer.** Writes the diff. Owns the branch. Responds to review in-loop until the PR is approved. Tools: git, editor, test-runner.
+- **Warden — Security Engineer.** Runs SAST, dependency, secrets, and IAM scans on every PR. Blocks or approves deterministically. Tools: Semgrep, Trivy, Gitleaks.
+- **Vector — Deployer.** Builds the image, pushes the registry, rolls out with canary or blue-green. Owns the deploy window. Tools: Docker, kubectl, GitHub Actions.
+- **Sentry — Observer.** Watches pod health, error rate, and p99 for the rollout window. Has rollback authority. Tools: Prometheus, Loki, PagerDuty.
+
+## Positioning vs alternatives
+
+- vs Vercel and Netlify: hosting platforms with no AI automation and no infra control. Xerant brings the agents and runs in your cluster, so you keep ownership and cut cost.
+- vs single-agent AI dev tools: Xerant runs five agents with separate sandboxes and contract-scoped handoffs. Each agent has a narrow surface and can be compromised without compromising the next stage.
+
+## Contact
+
+- Email: hi@xerant.cloud
+- Twitter: https://x.com/xerant_cloud
+- Telegram: https://t.me/sanchaymittal

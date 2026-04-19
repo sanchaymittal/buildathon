@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Xerant. A specialized DevOps team, sandboxed and on-call.";
+export const alt =
+  "Xerant. Save 60% on hosting and military-grade security. Sandboxed AI DevOps team.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -17,7 +18,7 @@ export default async function Image() {
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
-          padding: "80px 96px",
+          padding: "72px 88px",
           color: "#F5F5F5",
           fontFamily: "sans-serif",
         }}
@@ -33,14 +34,16 @@ export default async function Image() {
             textTransform: "uppercase",
           }}
         >
-          <span style={{ color: "#F5F5F5", letterSpacing: -0.5 }}>XERANT</span>
+          <span style={{ color: "#F5F5F5", letterSpacing: -0.5, fontSize: 28, fontWeight: 600 }}>
+            XERANT
+          </span>
           <span>Sandboxed DevOps Agents</span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           <div
             style={{
-              fontSize: 96,
+              fontSize: 88,
               fontWeight: 600,
               letterSpacing: -4,
               lineHeight: 1.02,
@@ -49,8 +52,20 @@ export default async function Image() {
               flexDirection: "column",
             }}
           >
-            <span>A specialized DevOps team.</span>
-            <span>Sandboxed and on-call.</span>
+            <span>Save 60% on hosting and</span>
+            <span>
+              <span style={{ color: "#FFB800" }}>military-grade</span> security.
+            </span>
+          </div>
+          <div
+            style={{
+              fontSize: 26,
+              color: "#8A8A8E",
+              display: "flex",
+              letterSpacing: -0.5,
+            }}
+          >
+            Your sandboxed AI DevOps team — on-call, in your cluster.
           </div>
         </div>
 
@@ -60,7 +75,7 @@ export default async function Image() {
             alignItems: "center",
             justifyContent: "space-between",
             borderTop: "1px solid #1F1F22",
-            paddingTop: 32,
+            paddingTop: 28,
           }}
         >
           {AGENTS.map((name, i) => (

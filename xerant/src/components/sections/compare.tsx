@@ -125,7 +125,7 @@ export function CompareSection() {
       <SectionHeader
         eyebrow="COMPARE"
         headline="Against the usual suspects."
-        subhead="Vercel and Netlify ship hosting. Xerant ships a team — sandboxed agents that write, review, and deploy in your cluster."
+        subhead="Xerant is a Vercel alternative and Netlify alternative that ships a built-in AI DevOps team. Vercel and Netlify host your code; Xerant also writes, reviews, deploys, and monitors it — in your cluster, not theirs. How the three stack up on the nine capabilities platform teams care about:"
       />
 
       <FadeIn>
