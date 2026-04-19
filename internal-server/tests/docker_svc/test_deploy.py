@@ -1,12 +1,17 @@
-"""Tests for DockerDeployService orchestrator."""
+"""Tests for the legacy DockerDeployService orchestrator (docker-py flow)."""
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
 
-from src.docker_svc.deploy import DockerDeployService
-from src.docker_svc.models import DeployRequest
+# The legacy flow depends on the optional ``docker`` (docker-py) package.
+# Skip the whole module cleanly when it's not installed so the MVP compose
+# tests remain the source of truth.
+docker = pytest.importorskip("docker")
+
+from src.docker_svc.deploy import DockerDeployService  # noqa: E402
+from src.docker_svc.models import DeployRequest  # noqa: E402
 
 
 @pytest.fixture
@@ -21,7 +26,9 @@ def mock_docker_service():
 
 
 def test_deploy_from_github(tmp_path, mocker, mock_docker_service):
-    deploy_service = DockerDeployService(docker_service=mock_docker_service, workspace_dir=str(tmp_path))
+    deploy_service = DockerDeployService(
+        docker_service=mock_docker_service, workspace_dir=str(tmp_path)
+    )
 
     mocker.patch.object(deploy_service, "_clone_repository", autospec=True)
     mocker.patch.object(deploy_service, "_check_dockerfile", return_value=True)
@@ -39,7 +46,9 @@ def test_deploy_from_github(tmp_path, mocker, mock_docker_service):
 
 
 def test_stop_and_remove_deployment(mock_docker_service, tmp_path, mocker):
-    deploy_service = DockerDeployService(docker_service=mock_docker_service, workspace_dir=str(tmp_path))
+    deploy_service = DockerDeployService(
+        docker_service=mock_docker_service, workspace_dir=str(tmp_path)
+    )
     mocker.patch.object(deploy_service, "_clone_repository", autospec=True)
     mocker.patch.object(deploy_service, "_check_dockerfile", return_value=True)
 
@@ -56,7 +65,9 @@ def test_stop_and_remove_deployment(mock_docker_service, tmp_path, mocker):
 
 
 def test_get_deployment_logs(mock_docker_service, tmp_path, mocker):
-    deploy_service = DockerDeployService(docker_service=mock_docker_service, workspace_dir=str(tmp_path))
+    deploy_service = DockerDeployService(
+        docker_service=mock_docker_service, workspace_dir=str(tmp_path)
+    )
     mocker.patch.object(deploy_service, "_clone_repository", autospec=True)
     mocker.patch.object(deploy_service, "_check_dockerfile", return_value=True)
 
@@ -65,4 +76,6 @@ def test_get_deployment_logs(mock_docker_service, tmp_path, mocker):
 
     logs = deploy_service.get_deployment_logs(deployment.id, tail=50)
     assert logs == "log line"
-    mock_docker_service.get_logs.assert_called_once_with(deployment.container_id, 50, False)
+    mock_docker_service.get_logs.assert_called_once_with(
+        deployment.container_id, 50, False
+    )
