@@ -51,14 +51,16 @@ curl -s http://localhost:8000/health/docker
 ```bash
 cd mcp-server
 npm install
-npm run build
+npm run bundle      # writes single-file bundle to .agents/skills/xerant/bin/xerant-mcp.mjs
 ```
 
-This writes an executable to `mcp-server/dist/index.js`.
+For debugging / dev iteration you can also run `npm run build` (produces `mcp-server/dist/`) or `npm run dev` (runs from source via tsx). The committed `opencode.json` points at the bundle, so drop-in installs into other projects work without a build step.
 
 ## 3. Register the MCP server with OpenCode
 
-The workspace already ships an `opencode.json` pointing at `./mcp-server/dist/index.js`. Optional env vars you may want to export in the shell that launches `opencode`:
+The workspace already ships an `opencode.json` pointing at `./.agents/skills/xerant/bin/xerant-mcp.mjs`. For drop-in into another project, run `.agents/skills/xerant/install.sh` from that project's root — see the skill's `SKILL.md` for details.
+
+Optional env vars you may want to export in the shell that launches `opencode`:
 
 ```bash
 export XERANT_API_URL=http://localhost:8000     # or wherever the server lives

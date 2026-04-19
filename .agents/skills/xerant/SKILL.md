@@ -25,6 +25,36 @@ End-to-end deploy pipeline with two flows. The **compose** flow is the hackathon
 OpenCode ── stdio ──▶ xerant-mcp ── HTTP ──▶ internal-server ──▶ Docker
 ```
 
+## Drop-in install (any project)
+
+The skill is fully self-contained — scripts, templates, and a pre-bundled MCP server binary live entirely inside this directory.
+
+To add it to any project:
+
+```bash
+# From the target project root:
+cp -r /path/to/buildathon/.agents/skills/xerant .agents/skills/xerant
+
+# Or drop via curl once the skill is served somewhere:
+#   curl -fsSL https://.../xerant-skill.tar.gz | tar -xz -C .agents/skills/
+
+# Wire it into OpenCode (creates or merges opencode.json):
+bash .agents/skills/xerant/install.sh
+
+# Restart OpenCode. The `xerant` MCP server auto-starts on demand.
+```
+
+Requirements on the host:
+- **Node.js ≥ 20** (for the bundled MCP binary; `install.sh` enforces this).
+- An internal-server instance reachable at `XERANT_API_URL` (default `http://localhost:8000`). Start it with `python -m src.cli serve` from `internal-server/` or via its `Dockerfile`.
+
+What `install.sh` does:
+1. Verifies `bin/xerant-mcp.mjs` is present and executable.
+2. Writes or merges an `mcp.xerant` block into `./opencode.json`, using a **relative** path so the config stays portable across machines.
+3. Runs a stdio self-test (`tools/list`) to confirm the 22 tools load.
+
+The installer never writes secrets. `XERANT_API_URL` / `XERANT_API_KEY` are read from the user's shell env at run time.
+
 ## Invocation
 
 Trigger on any of:
@@ -238,10 +268,13 @@ On failure: failing step + underlying error + suggested next step.
 ```
 .agents/skills/xerant/
 ├── SKILL.md                   # this file
+├── install.sh                 # drop-in installer (merges opencode.json)
+├── bin/
+│   └── xerant-mcp.mjs         # pre-bundled MCP server (single-file, Node >= 20)
 ├── scripts/
-│   ├── check-dockerfile.sh
-│   ├── scan-secrets.sh
-│   └── deploy.sh              # CLI fallback when MCP unavailable
+│   ├── check-dockerfile.sh    # security gate runner (Dockerfile + compose)
+│   ├── scan-secrets.sh        # secret-pattern scanner
+│   └── deploy.sh              # legacy CLI fallback when MCP unavailable
 └── templates/
     ├── Dockerfile.nextjs
     ├── Dockerfile.node
@@ -249,6 +282,14 @@ On failure: failing step + underlying error + suggested next step.
     ├── compose.yml            # single-service starter for the MVP flow
     └── .dockerignore
 ```
+
+The MCP server source lives in `mcp-server/` at the repo root. Re-bundle after source changes with:
+
+```bash
+cd mcp-server && npm install && npm run bundle
+```
+
+`npm run bundle` writes the bundled binary directly into this skill's `bin/xerant-mcp.mjs` via esbuild.
 
 ## MCP tool catalog
 

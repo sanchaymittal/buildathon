@@ -6,7 +6,7 @@
   "mcp": {
     "xerant": {
       "type": "local",
-      "command": ["node", "./mcp-server/dist/index.js"],
+      "command": ["node", "./.agents/skills/xerant/bin/xerant-mcp.mjs"],
       "environment": {
         "XERANT_API_URL": "{env:XERANT_API_URL}",
         "XERANT_API_KEY": "{env:XERANT_API_KEY}"
