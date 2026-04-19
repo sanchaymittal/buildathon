@@ -15,7 +15,9 @@ with open("README.md", "r", encoding="utf-8") as f:
     long_description = f.read()
 
 with open("requirements.txt", "r", encoding="utf-8") as f:
-    requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    requirements = [
+        line.strip() for line in f if line.strip() and not line.startswith("#")
+    ]
 
 setup(
     name="devops-agent",
@@ -42,9 +44,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     python_requires=">=3.9",
-    entry_points={
-        "console_scripts": [
-            "devops-agent=devops_agent.cli:main",
-        ],
-    },
+    # The CLI is invoked as `python -m src.cli`. No console script is
+    # installed by default; a prior entry point targeted a
+    # `devops_agent.cli` module that does not exist in this repo.
 )

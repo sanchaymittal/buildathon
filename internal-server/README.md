@@ -30,10 +30,22 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-For editable installs (enables the `devops-agent` console script):
+Minimum install for the Compose MVP flow only (skips optional
+`docker-py`, `PyGithub`, and Gemini Agents dependencies):
+
+```bash
+pip install pydantic fastapi 'uvicorn[standard]' pytest pytest-mock pytest-asyncio httpx
+```
+
+Editable install for development:
+
 ```bash
 pip install -e .
 ```
+
+> The CLI is invoked as a module — `python -m src.cli` — in every
+> example below. No top-level `devops-agent` console script is
+> installed.
 
 ## Configuration
 The service reads configuration and secrets in this order:
@@ -72,38 +84,51 @@ the Gemini agent and the legacy GitHub / remote-Docker flows do.
 ## Usage
 
 ### CLI
-The CLI mirrors API functionality. Install the project in editable mode or run with `python -m src.cli`.
+The CLI mirrors API functionality and is invoked as a module.
 
 ```bash
-# Deploy a repository
-devops-agent docker deploy --repo owner/app --branch main --port 8000 --env KEY=VALUE,FLAG=1
+# Compose MVP (recommended — no credentials needed)
+python -m src.cli docker compose up     --path examples/sample-app
+python -m src.cli docker compose status --path examples/sample-app
+python -m src.cli docker compose logs   --path examples/sample-app --service web --tail 200
+python -m src.cli docker compose down   --path examples/sample-app
 
-# Inspect deployments and containers
-devops-agent docker list
-devops-agent docker logs <deploy_id> --tail 200
-devops-agent docker ps --all
+# Legacy GitHub-clone flow (needs GITHUB_TOKEN + optional deps)
+python -m src.cli docker deploy --repo owner/app --branch main --port 8000 --env KEY=VALUE,FLAG=1
+python -m src.cli docker list
+python -m src.cli docker logs <deploy_id> --tail 200
+python -m src.cli docker ps --all
 
 # Interact with GitHub
-devops-agent github list-repos --org my-org
-devops-agent github get-repo app --owner my-org
+python -m src.cli github list-repos --org my-org
+python -m src.cli github get-repo app --owner my-org
 
-# Launch the FastAPI server
-devops-agent serve --host 0.0.0.0 --port 8000 --reload
+# Launch the FastAPI server (use a port that does not collide with your compose stack)
+python -m src.cli serve --host 0.0.0.0 --port 8765 --reload
 ```
 
-Run `devops-agent --help`, `devops-agent docker --help`, or `devops-agent github --help` for subcommand details.
+Run `python -m src.cli --help`, `python -m src.cli docker --help`, or
+`python -m src.cli github --help` for subcommand details.
+
+> Every legacy `docker` subcommand requires `GITHUB_TOKEN` to be set,
+> even read-only ones like `list`. The `docker compose` subcommands
+> work without any credentials.
 
 ### FastAPI Server
 ```bash
-uvicorn src.api.app:app --host 0.0.0.0 --port 8000 --reload
+uvicorn src.api.app:app --host 0.0.0.0 --port 8765 --reload
 ```
 
-Two ready-made health probes are available:
-- `GET /health`
-- `GET /health/docker`
+Three ready-made health probes are available:
+- `GET /health` — service liveness
+- `GET /health/compose` — Compose MVP flow (local `docker compose` CLI)
+- `GET /health/docker` — legacy flow (`docker-py`)
 
-A full endpoint catalog lives in [docs/api.md](docs/api.md).
-MCP access for external agents is documented in [docs/mcp.md](docs/mcp.md).
+A full endpoint catalog, including the `/compose/*` MVP endpoints and
+the legacy `/deployments/*`, `/containers/*`, `/github/*` surfaces,
+lives in [docs/api.md](docs/api.md). A full deploy walkthrough is in
+[docs/deployment-testing.md](docs/deployment-testing.md). MCP access
+for external agents is documented in [docs/mcp.md](docs/mcp.md).
 
 ## Gemini Agents Integration
 
@@ -153,13 +178,13 @@ GET  /health/gemini                     # key + SDK availability check
 
 ```bash
 # One-shot
-devops-agent agent run "Deploy examples/sample-app and tail the web logs"
+python -m src.cli agent run "Deploy examples/sample-app and tail the web logs"
 
 # Persistent sessions (in-process only)
-SID=$(devops-agent agent spawn)
-devops-agent agent session-run "$SID" "What services are running?"
-devops-agent agent sessions
-devops-agent agent close "$SID"
+SID=$(python -m src.cli agent spawn)
+python -m src.cli agent session-run "$SID" "What services are running?"
+python -m src.cli agent sessions
+python -m src.cli agent close "$SID"
 ```
 
 The low-level `gemini_agents.function_tool` decorators in
@@ -215,16 +240,16 @@ POST   /team/runs/{id}/reject        fail a waiting run
 
 ```bash
 # Kick off a run
-devops-agent team run "Ship examples/sample-app to staging" \
+python -m src.cli team run "Ship examples/sample-app to staging" \
   --path examples/sample-app
 
 # Observe
-devops-agent team status <run_id>
-devops-agent team events <run_id>
+python -m src.cli team status <run_id>
+python -m src.cli team events <run_id>
 
 # Approve or reject a blocked run
-devops-agent team approve <run_id> --gate pre_deploy
-devops-agent team reject  <run_id> --gate pre_deploy --reason "bad diff"
+python -m src.cli team approve <run_id> --gate pre_deploy
+python -m src.cli team reject  <run_id> --gate pre_deploy --reason "bad diff"
 ```
 
 ### Integration adapters

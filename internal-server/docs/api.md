@@ -1,22 +1,125 @@
 # Agentic DevOps API Reference
 
-Base URL defaults to `http://localhost:8000`. All endpoints return JSON responses and use standard HTTP status codes.
+Base URL defaults to `http://localhost:8000`. All endpoints return JSON
+responses and use standard HTTP status codes.
+
+The server exposes two parallel deploy surfaces:
+
+- **Compose MVP (recommended, always available)** — `/compose/*`
+  endpoints operate on a local project directory that already contains
+  a `Dockerfile` and a `compose.yml`. This matches the target-repo
+  contract described in [AGENTS.md](../AGENTS.md): the caller provides
+  a deployable local path; the server does not hunt for Dockerfiles or
+  generate build manifests.
+- **Legacy GitHub flow (optional)** — `/deployments/*`, `/containers/*`,
+  and `/github/*` clone a GitHub repo, look for a root `Dockerfile`,
+  and run one container. These routers only register when the optional
+  `docker` and `PyGithub` packages are installed; otherwise they return
+  404.
 
 ## Authentication
-This API assumes the server has been configured with access credentials:
+This API assumes the server has been configured with access credentials
+for the flows you intend to use:
 
-- Docker access is derived from the host environment or `DEVOPS_DOCKER__*` configuration.
-- GitHub requests reuse the token configured for the running service (environment variables or `~/.devops/credentials.json`).
+- The **Compose MVP flow** needs no credentials. It only requires a
+  local Docker daemon and the `docker compose` CLI on PATH.
+- **Docker (legacy) access** is derived from the host environment or
+  `DEVOPS_DOCKER__*` configuration.
+- **GitHub (legacy) requests** reuse the token configured for the
+  running service (environment variables or
+  `~/.devops/credentials.json`).
 
 No additional headers are required by callers once the backend is provisioned.
 
 ## Error Handling
-- `400 Bad Request`: Validation failures, Docker or GitHub service errors.
+- `200 OK` with `status: "failed"`: `POST /compose/up` returns 200 even
+  when `docker compose up` exits non-zero, so callers can inspect the
+  captured `output` / `error` fields.
+- `400 Bad Request`: Validation failures, legacy Docker or GitHub
+  service errors (e.g., no root Dockerfile, build failure).
 - `401 Unauthorized`: GitHub credentials missing when hitting GitHub endpoints.
-- `404 Not Found`: Requested resource is unknown (deployment ID, container ID, repository path, etc.).
-- `503 Service Unavailable`: Docker health check cannot reach the daemon.
+- `404 Not Found`: Requested resource is unknown (deployment ID,
+  container ID, repository path, etc.), or an optional router
+  (`/deployments`, `/containers`, `/github`) did not register because
+  its dependency is missing.
+- `503 Service Unavailable`: Docker / Compose health check cannot reach
+  the daemon.
 
 Error payloads follow FastAPI’s default structure: `{ "detail": "message" }`.
+
+---
+
+## Compose MVP
+
+### Models
+
+- **DeployLocalRequest**
+  - `project_path` *(string, required)* — absolute or relative path to
+    the local project directory.
+  - `compose_file` *(string, optional)* — compose filename relative to
+    `project_path`. Auto-detects `compose.yml` → `compose.yaml` →
+    `docker-compose.yml` → `docker-compose.yaml` when omitted.
+  - `project_name` *(string, optional)* — compose project name.
+    Defaults to `<basename(project_path)>-<sha1(abs_path)[:6]>`.
+  - `env` *(object, default `{}`)* — environment variables passed to
+    `docker compose up`.
+  - `env_file` *(string, optional)* — path relative to `project_path`
+    pointing at a `.env` file.
+  - `build` *(bool, default `true`)* — pass `--build` to `up`.
+  - `pull` *(bool, default `false`)* — pass `--pull always` to `up`.
+- **ComposeTargetRequest** — reference to an existing compose project.
+  Fields: `project_path`, optional `compose_file`, optional
+  `project_name` (defaults are the same as above).
+- **ComposeLogsRequest** — extends `ComposeTargetRequest` with
+  `service` *(string, optional)* and `tail` *(int, default `200`)*.
+- **ComposeServiceStatus** — `service`, `container_id`, `name`,
+  `state`, `status`, `ports`.
+- **DeployLocalResult** — `status` (`"succeeded"` / `"failed"`),
+  `project_name`, `project_path`, `compose_file`,
+  `services[ComposeServiceStatus]`, `output`, `error`,
+  `agents_md_excerpt`.
+
+### `GET /compose/ping`
+
+Pings the local Docker daemon via the `docker compose` CLI. Returns
+`{ "status": "ok" }` on success.
+
+### `POST /compose/up`
+
+Run `docker compose up -d` for the supplied project path.
+
+Request body: `DeployLocalRequest`.
+
+Responses:
+- `200 OK` with a `DeployLocalResult`. `status` is `"succeeded"` on a
+  clean bring-up. Compose-level failures return the same shape with
+  `status="failed"` and the captured `output` / `error` populated; this
+  is intentional so the caller can inspect details without an HTTP 4xx.
+
+### `POST /compose/down`
+
+Run `docker compose down` for the supplied project.
+
+Request body: `ComposeTargetRequest`.
+
+Response: `200 OK` with `{ "output": "<compose stderr/stdout>" }`.
+
+### `POST /compose/status`
+
+Return per-service status for a running compose project.
+
+Request body: `ComposeTargetRequest`.
+
+Response: `200 OK` with `ComposeServiceStatus[]`.
+
+### `POST /compose/logs`
+
+Return recent logs for the compose project (optionally filtered to a
+single service).
+
+Request body: `ComposeLogsRequest`.
+
+Response: `200 OK` with `{ "logs": "<text>" }`.
 
 ---
 
@@ -79,16 +182,37 @@ Response body:
 ### `GET /health`
 Simple heartbeat that returns `{ "status": "healthy", "service": "agentic-devops" }`.
 
-### `GET /health/docker`
-Verifies Docker connectivity.
+### `GET /health/compose`
+Verifies local Docker connectivity via the `docker compose` CLI (MVP flow).
 
 Responses:
 - `200 OK` with `{ "status": "healthy", "docker": "connected" }`.
-- `503 Service Unavailable` with `{ "status": "unhealthy", "docker": "<error>" }` when the daemon is unreachable.
+- `503 Service Unavailable` when the CLI is missing or the daemon is
+  unreachable.
+
+### `GET /health/docker`
+Verifies Docker connectivity via `docker-py` (legacy flow).
+
+Responses:
+- `200 OK` with `{ "status": "healthy", "docker": "connected" }`.
+- `503 Service Unavailable` with `{ "status": "unhealthy", "docker": "<error>" }`
+  when the daemon is unreachable **or** the `docker` Python SDK is not
+  installed.
 
 ---
 
-## Deployments
+## Deployments (legacy GitHub flow)
+
+> Requires the optional `docker` (`docker-py`) and `PyGithub` packages.
+> If either is missing, the `/deployments/*` and `/containers/*`
+> routers do not register and all endpoints below return 404.
+>
+> This flow clones a GitHub repo and looks for a **root** `Dockerfile`.
+> Repos with a Dockerfile in a subdirectory, multi-service compose
+> projects, or generated build manifests are out of scope — per the
+> AGENTS.md contract the caller is responsible for providing a
+> deployable target. For those cases, use the Compose MVP flow with a
+> local checkout instead.
 
 ### Deployment Models
 - **DeployRequest**

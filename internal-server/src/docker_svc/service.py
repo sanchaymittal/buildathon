@@ -83,18 +83,26 @@ class DockerService:
 
         result = []
         for c in containers:
-            result.append({
-                "id": c.id,
-                "short_id": c.short_id,
-                "name": c.name,
-                "image": c.image.tags[0] if c.image.tags else c.image.short_id,
-                "status": c.status,
-                "state": c.attrs.get("State", {}).get("Status"),
-                "created": c.attrs.get("Created"),
-                "ports": {p.get("HostPort"): p.get("ContainerPort")
-                         for p in c.ports or []},
-                "labels": c.labels,
-            })
+            ports: Dict[str, Any] = {}
+            for port, bindings in (c.ports or {}).items():
+                if bindings:
+                    ports[port] = [
+                        {"HostPort": b.get("HostPort"), "HostIp": b.get("HostIp")}
+                        for b in bindings
+                    ]
+            result.append(
+                {
+                    "id": c.id,
+                    "short_id": c.short_id,
+                    "name": c.name,
+                    "image": c.image.tags[0] if c.image.tags else c.image.short_id,
+                    "status": c.status,
+                    "state": c.attrs.get("State", {}).get("Status"),
+                    "created": c.attrs.get("Created"),
+                    "ports": ports,
+                    "labels": c.labels,
+                }
+            )
 
         return result
 
@@ -119,15 +127,18 @@ class DockerService:
         ports = {}
         for port, bindings in container.ports.items():
             if bindings:
-                ports[port] = [{"HostPort": b.get("HostPort"),
-                               "HostIp": b.get("HostIp")}
-                              for b in bindings]
+                ports[port] = [
+                    {"HostPort": b.get("HostPort"), "HostIp": b.get("HostIp")}
+                    for b in bindings
+                ]
 
         return {
             "id": container.id,
             "short_id": container.short_id,
             "name": container.name,
-            "image": container.image.tags[0] if container.image.tags else container.image.short_id,
+            "image": container.image.tags[0]
+            if container.image.tags
+            else container.image.short_id,
             "status": container.status,
             "state": container.attrs.get("State", {}).get("Status"),
             "created": container.attrs.get("Created"),
@@ -146,7 +157,7 @@ class DockerService:
             Free port number
         """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('127.0.0.1', 0))
+            s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
             return port
 
@@ -324,7 +335,9 @@ class DockerService:
             raise DockerServiceError(f"Failed to remove container: {e.explanation}")
 
     @docker_operation("get_logs")
-    def get_logs(self, container_id: str, tail: int = 100, timestamps: bool = False) -> str:
+    def get_logs(
+        self, container_id: str, tail: int = 100, timestamps: bool = False
+    ) -> str:
         """
         Get container logs.
 
@@ -396,13 +409,15 @@ class DockerService:
 
         result = []
         for img in images:
-            result.append({
-                "id": img.id,
-                "short_id": img.short_id,
-                "tags": img.tags,
-                "size": img.attrs.get("Size"),
-                "created": img.attrs.get("Created"),
-            })
+            result.append(
+                {
+                    "id": img.id,
+                    "short_id": img.short_id,
+                    "tags": img.tags,
+                    "size": img.attrs.get("Size"),
+                    "created": img.attrs.get("Created"),
+                }
+            )
 
         return result
 
