@@ -1,0 +1,11 @@
+We're building a MaaS to kill our DevOps team.
+
+Not "augment." Replace.
+
+→ Pager duty → agent on-call
+→ Terraform PRs → agent-authored
+→ Incident triage → agent-led
+
+Humans chill. Agents ship.
+
+First 100 users free. xerant.cloud

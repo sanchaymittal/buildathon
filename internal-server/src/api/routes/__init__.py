@@ -8,6 +8,7 @@ server can still start in a minimal environment.
 
 from . import compose
 from . import agent as agent_routes
+from . import mcp
 
 try:  # pragma: no cover - depends on optional deps
     from . import deployments, containers
@@ -26,7 +27,7 @@ except Exception:  # pragma: no cover
     github_routes = None  # type: ignore[assignment]
     _GITHUB_ROUTES = False
 
-__all__ = ["compose", "agent_routes"]
+__all__ = ["compose", "agent_routes", "mcp"]
 if _LEGACY_DOCKER_ROUTES:
     __all__.extend(["deployments", "containers"])
 if _GITHUB_ROUTES:

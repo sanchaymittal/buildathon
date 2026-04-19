@@ -1,0 +1,35 @@
+{
+  "name": "@xerant/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "MCP server bridging OpenCode (and other MCP clients) to the Xerant internal DevOps API.",
+  "type": "module",
+  "bin": {
+    "xerant-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/index.js', 0o755)\"",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --external:node:* --outfile=../.agents/skills/xerant/bin/xerant-mcp.mjs && node -e \"require('fs').chmodSync('../.agents/skills/xerant/bin/xerant-mcp.mjs', 0o755)\"",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

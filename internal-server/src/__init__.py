@@ -2,7 +2,7 @@
 DevOps Agent Package - Provides functionality for DevOps operations with the Gemini Agents SDK.
 
 This package includes modules for Docker container operations, GitHub integration,
-and other DevOps tools, designed to be used with the OpenAI Agents SDK.
+and other DevOps tools, designed to be used with the Gemini Agents SDK.
 
 The local Docker Compose deployment flow (``deploy_local_project`` and friends)
 is dependency-light and is the primary path for the hackathon MVP. The legacy
@@ -17,6 +17,7 @@ from .docker_svc import (
     ComposeDeployError,
     # Legacy models
     DeployRequest,
+    DeployUserRequest,
     Deployment,
     ContainerFilter,
     ContainerAction,
@@ -107,6 +108,7 @@ __all__ = [
     "ComposeDeployError",
     # Legacy docker models
     "DeployRequest",
+    "DeployUserRequest",
     "Deployment",
     "ContainerFilter",
     "ContainerAction",

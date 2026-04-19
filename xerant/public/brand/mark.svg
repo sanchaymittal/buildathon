@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Xerant mark">
+  <title>Xerant — Agent Lattice Mark</title>
+  <rect width="400" height="400" fill="#000000"/>
+  <g transform="translate(200 200)">
+    <!-- perimeter grid (dim) -->
+    <g stroke="#2A2A2E" stroke-width="2" fill="none">
+      <line x1="-110" y1="-110" x2="110"  y2="-110"/>
+      <line x1="110"  y1="-110" x2="110"  y2="110"/>
+      <line x1="110"  y1="110"  x2="-110" y2="110"/>
+      <line x1="-110" y1="110"  x2="-110" y2="-110"/>
+    </g>
+    <!-- amber diagonals -->
+    <g stroke="#FFB800" stroke-width="7" stroke-linecap="round">
+      <line x1="-90" y1="-90" x2="-22" y2="-22"/>
+      <line x1="22"  y1="22"  x2="90"  y2="90"/>
+      <line x1="90"  y1="-90" x2="22"  y2="-22"/>
+      <line x1="-22" y1="22"  x2="-90" y2="90"/>
+    </g>
+    <!-- corner nodes -->
+    <g fill="#000000" stroke="#F5F5F5" stroke-width="5">
+      <circle cx="-110" cy="-110" r="15"/>
+      <circle cx="110"  cy="-110" r="15"/>
+      <circle cx="-110" cy="110"  r="15"/>
+      <circle cx="110"  cy="110"  r="15"/>
+    </g>
+    <!-- center orchestrator node -->
+    <circle cx="0" cy="0" r="18" fill="#FFB800"/>
+  </g>
+</svg>

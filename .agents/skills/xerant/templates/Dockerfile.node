@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1.7
+# Generic Node.js multi-stage build for non-Next.js apps.
+
+ARG NODE_VERSION=20.18.0-alpine
+
+FROM node:${NODE_VERSION} AS deps
+WORKDIR /app
+RUN apk add --no-cache libc6-compat
+COPY package.json pnpm-lock.yaml* package-lock.json* yarn.lock* ./
+RUN \
+  if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm i --frozen-lockfile --prod=false; \
+  elif [ -f yarn.lock ]; then corepack enable && yarn --frozen-lockfile; \
+  elif [ -f package-lock.json ]; then npm ci; \
+  else npm install; \
+  fi
+
+FROM node:${NODE_VERSION} AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build --if-present
+
+FROM node:${NODE_VERSION} AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN addgroup --system --gid 1001 app \
+ && adduser  --system --uid 1001 app
+
+COPY --from=builder --chown=app:app /app ./
+
+# Strip devDependencies
+RUN npm prune --omit=dev
+
+USER app
+EXPOSE 3000
+CMD ["node", "."]

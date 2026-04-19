@@ -1,0 +1,58 @@
+{
+  "version": 1,
+  "skills": {
+    "caveman": {
+      "source": "JuliusBrussee/caveman",
+      "sourceType": "github",
+      "computedHash": "a818cdc41dcfaa50dd891c5cb5e5705968338de02e7e37949ca56e8c30ad4176"
+    },
+    "marketing-brand-review": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/brand-review",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "4f024b8a0d1c0a131c76f1764818a60fb5e98a7536d4a9a1a5a067342674ba4b"
+    },
+    "marketing-campaign-plan": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/campaign-plan",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "139cf1085f32f271326527024134b19bd332dce23bec411f3b3833a91f06e3a2"
+    },
+    "marketing-competitive-brief": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/competitive-brief",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "f6893647a01c9f9aae7bd02bdc0ad296e15648e0a3550aa08da123d86857d457"
+    },
+    "marketing-content-creation": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/content-creation",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "708e126ceab9ec688c4deae843275b09c64bc4003e37dace11d9f87d5b44eae9"
+    },
+    "marketing-draft-content": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/draft-content",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "47bbd991a69e001b404f60775e304d51f4751d1d7e5b97c8000eea6af448dad5"
+    },
+    "marketing-email-sequence": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/email-sequence",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "9269ea3c274cd50c54def4de0aa4645090b9bba90a9d8a1977a9ac0e85920142"
+    },
+    "marketing-performance-report": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/performance-report",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "eceadcb0b79e0ed2fc765130ba3c91510f224bf34562775c1d3601f7abeccd37"
+    },
+    "marketing-seo-audit": {
+      "source": "anthropics/knowledge-work-plugins/marketing/skills/seo-audit",
+      "sourceType": "github",
+      "sourceRef": "8fd1c52243c81d523b7fa7988cc1ac8d92669892",
+      "computedHash": "aa80e0f366c92c1cf9356b79383f77a023d818bd68b012a5d6e01b105ff5d946"
+    }
+  }
+}

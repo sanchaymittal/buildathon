@@ -5,7 +5,7 @@ Deployment Routes - FastAPI endpoints for deployments.
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ...docker_svc import DockerDeployService, DeployRequest, Deployment
+from ...docker_svc import DockerDeployService, DeployRequest, DeployUserRequest, Deployment
 from ...docker_svc.base import DockerServiceError
 from ...core.credentials import get_credential_manager
 from ..dependencies import get_deploy_service
@@ -32,6 +32,25 @@ def create_deployment(
     """Deploy a GitHub repository to Docker."""
     try:
         deployment = deploy_service.deploy_from_github(request, github_token)
+        return deployment
+    except DockerServiceError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/quick", response_model=Deployment, status_code=status.HTTP_201_CREATED)
+def create_user_deployment(
+    request: DeployUserRequest,
+    deploy_service: DockerDeployService = Depends(get_deploy_service),
+    github_token: Optional[str] = Depends(_get_github_token),
+) -> Deployment:
+    """Deploy a GitHub repository with a required user identifier."""
+    try:
+        deploy_request = DeployRequest(repository=request.repository)
+        deployment = deploy_service.deploy_from_github(
+            deploy_request,
+            github_token,
+            user_id=request.user_id,
+        )
         return deployment
     except DockerServiceError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

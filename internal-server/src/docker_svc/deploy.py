@@ -161,6 +161,7 @@ class DockerDeployService:
         self,
         request: DeployRequest,
         github_token: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> Deployment:
         """
         Deploy a GitHub repository to Docker.
@@ -212,6 +213,8 @@ class DockerDeployService:
                 "repository": request.repository,
                 "branch": request.branch,
             }
+            if user_id:
+                labels["user-id"] = user_id
 
             container = self.docker.run_container(
                 image=image_tag,
@@ -227,6 +230,7 @@ class DockerDeployService:
 
             deployment = Deployment(
                 id=deploy_id,
+                user_id=user_id,
                 repository=request.repository,
                 branch=request.branch,
                 image=image_tag,
@@ -358,7 +362,11 @@ class DockerDeployService:
         old_container_id = deployment.container_id
 
         try:
-            new_deployment = self.deploy_from_github(request, github_token)
+            new_deployment = self.deploy_from_github(
+                request,
+                github_token,
+                user_id=deployment.user_id,
+            )
 
             self.docker.remove_container(old_container_id, force=True)
 

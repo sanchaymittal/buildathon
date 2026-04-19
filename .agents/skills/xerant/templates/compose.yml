@@ -1,0 +1,37 @@
+# Single-service compose starter for the Xerant MVP flow.
+#
+# The internal server runs `docker compose up -d` from this project's directory.
+# Edit ports/env/build context to match your app before deploying.
+#
+# NOTE: keep this file free of literal secrets. Use `env_file: .env` (git-ignored)
+# or pass env via the skill / MCP tool at deploy time.
+
+name: ${COMPOSE_PROJECT_NAME:-app}
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE:-app:local}
+    restart: unless-stopped
+    environment:
+      # Populated by the xerant skill when an environment flag is passed.
+      DEPLOY_ENV: ${DEPLOY_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
+    ports:
+      # host:container — change 8080 to whatever is free on the deploy host.
+      - "8080:3000"
+    # Uncomment and populate for persistent state:
+    # volumes:
+    #   - app-data:/var/lib/app
+
+    # Uncomment for a healthcheck that `docker compose status` / Xerant can observe.
+    # healthcheck:
+    #   test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+    #   interval: 30s
+    #   timeout: 5s
+    #   retries: 3
+
+# volumes:
+#   app-data:

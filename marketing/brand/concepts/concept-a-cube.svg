@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Xerant concept A — sandboxed cube">
+  <rect width="400" height="400" fill="#000000"/>
+  <g transform="translate(200 200)">
+    <!-- isometric cube -->
+    <g stroke="#F5F5F5" stroke-width="6" stroke-linejoin="round" fill="none">
+      <!-- back edges (dimmer) -->
+      <path d="M0 -110 L0 10" stroke="#2A2A2E"/>
+      <path d="M-95 -55 L0 -110" stroke="#2A2A2E"/>
+      <path d="M95 -55 L0 -110" stroke="#2A2A2E"/>
+      <!-- front faces -->
+      <path d="M-95 -55 L-95 65 L0 120 L95 65 L95 -55 L0 -110 Z"/>
+      <path d="M0 10 L0 120"/>
+      <path d="M-95 -55 L0 10 L95 -55"/>
+    </g>
+    <!-- amber X inside (top face) -->
+    <g stroke="#FFB800" stroke-width="8" stroke-linecap="round">
+      <line x1="-60" y1="-75" x2="60" y2="-35"/>
+      <line x1="60" y1="-75" x2="-60" y2="-35"/>
+    </g>
+  </g>
+</svg>

@@ -103,6 +103,7 @@ Two ready-made health probes are available:
 - `GET /health/docker`
 
 A full endpoint catalog lives in [docs/api.md](docs/api.md).
+MCP access for external agents is documented in [docs/mcp.md](docs/mcp.md).
 
 ## Gemini Agents Integration
 

@@ -48,7 +48,7 @@ def _get_service() -> ComposeDeployService:
     return ComposeDeployService(skip_verification=True)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def deploy_local_project(
     ctx: "RunContextWrapper[DevOpsContext]",
     request: DeployLocalRequest,
@@ -64,7 +64,7 @@ async def deploy_local_project(
     return _get_service().deploy(request)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def project_status(
     ctx: "RunContextWrapper[DevOpsContext]",
     request: ComposeTargetRequest,
@@ -74,7 +74,7 @@ async def project_status(
     return _get_service().status(request)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def stop_local_project(
     ctx: "RunContextWrapper[DevOpsContext]",
     request: ComposeTargetRequest,
@@ -84,7 +84,7 @@ async def stop_local_project(
     return _get_service().down(request)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def project_logs(
     ctx: "RunContextWrapper[DevOpsContext]",
     request: ComposeLogsRequest,

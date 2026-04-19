@@ -53,6 +53,18 @@ curl -s -X POST http://localhost:8000/deployments \
   }'
 ```
 
+### Minimal User-Scoped Deploy
+If you only want to send a repo and a user ID, use the quick endpoint:
+
+```bash
+curl -s -X POST http://localhost:8000/deployments/quick \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repository": "owner/repo",
+    "user_id": "user-123"
+  }'
+```
+
 The response returns a `Deployment` object with `id`, `container_name`, and `url`.
 
 ## 4) Check Status and Logs
