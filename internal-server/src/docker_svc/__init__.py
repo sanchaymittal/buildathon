@@ -102,27 +102,6 @@ __all__ = [
     "BuildRequest",
     "RunContainerRequest",
     "ImageFilter",
-    # Services
-    "DockerService",
-    "DockerDeployService",
-    # Tools
-    "deploy_repository",
-    "list_deployments",
-    "get_deployment",
-    "stop_deployment",
-    "start_deployment",
-    "restart_deployment",
-    "remove_deployment",
-    "get_deployment_logs",
-    "list_containers",
-    "get_container",
-    "stop_container",
-    "start_container",
-    "restart_container",
-    "remove_container",
-    "get_container_logs",
-    "list_images",
-]
     # Models (compose)
     "DeployLocalRequest",
     "DeployLocalResult",
