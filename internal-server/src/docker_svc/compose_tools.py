@@ -1,9 +1,10 @@
 """
 Compose Tools - Agent-facing tool functions for local Compose deployments.
 
-These thin wrappers expose ``ComposeDeployService`` to the OpenAI Agents SDK.
-If the ``agents`` package is not installed (e.g. during unit tests) the tool
-functions are still importable as plain async coroutines.
+These thin wrappers expose ``ComposeDeployService`` to the Gemini Agents
+runtime. The decorator comes from ``src.gemini_agents.function_tool`` which
+attaches the ``on_invoke_tool`` / ``original`` metadata the runner uses to
+dispatch tool calls and coerce pydantic arguments.
 """
 
 from __future__ import annotations
@@ -11,6 +12,8 @@ from __future__ import annotations
 import logging
 from typing import List
 
+from ..core.context import DevOpsContext
+from ..gemini_agents import RunContextWrapper, function_tool
 from .compose_models import (
     ComposeLogsRequest,
     ComposeServiceStatus,
@@ -23,34 +26,13 @@ from .compose_service import ComposeDeployService
 logger = logging.getLogger(__name__)
 
 
-try:  # pragma: no cover - the SDK may not be installed in minimal test envs
-    from agents import function_tool, RunContextWrapper  # type: ignore
-    from ..core.context import DevOpsContext
-
-    _AGENTS_AVAILABLE = True
-except Exception:  # pragma: no cover
-    _AGENTS_AVAILABLE = False
-
-    def function_tool(*_args, **_kwargs):  # type: ignore[no-redef]
-        def decorator(func):
-            return func
-
-        return decorator
-
-    class RunContextWrapper:  # type: ignore[no-redef]
-        pass
-
-    class DevOpsContext:  # type: ignore[no-redef]
-        pass
-
-
 def _get_service() -> ComposeDeployService:
     return ComposeDeployService(skip_verification=True)
 
 
-@function_tool(strict_mode=False)
+@function_tool()
 async def deploy_local_project(
-    ctx: "RunContextWrapper[DevOpsContext]",
+    ctx: RunContextWrapper[DevOpsContext],
     request: DeployLocalRequest,
 ) -> DeployLocalResult:
     """
@@ -64,9 +46,9 @@ async def deploy_local_project(
     return _get_service().deploy(request)
 
 
-@function_tool(strict_mode=False)
+@function_tool()
 async def project_status(
-    ctx: "RunContextWrapper[DevOpsContext]",
+    ctx: RunContextWrapper[DevOpsContext],
     request: ComposeTargetRequest,
 ) -> List[ComposeServiceStatus]:
     """Return the status of each compose service in a local project."""
@@ -74,9 +56,9 @@ async def project_status(
     return _get_service().status(request)
 
 
-@function_tool(strict_mode=False)
+@function_tool()
 async def stop_local_project(
-    ctx: "RunContextWrapper[DevOpsContext]",
+    ctx: RunContextWrapper[DevOpsContext],
     request: ComposeTargetRequest,
 ) -> str:
     """Stop a local compose project via ``docker compose down``."""
@@ -84,9 +66,9 @@ async def stop_local_project(
     return _get_service().down(request)
 
 
-@function_tool(strict_mode=False)
+@function_tool()
 async def project_logs(
-    ctx: "RunContextWrapper[DevOpsContext]",
+    ctx: RunContextWrapper[DevOpsContext],
     request: ComposeLogsRequest,
 ) -> str:
     """Return recent logs for a local compose project."""
