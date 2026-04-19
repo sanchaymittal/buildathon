@@ -27,6 +27,7 @@ from .base import (
 
 from .models import (
     DeployRequest,
+    DeployUserRequest,
     Deployment,
     ContainerFilter,
     ContainerAction,
@@ -95,6 +96,7 @@ __all__ = [
     "ComposeDeployError",
     # Models (legacy)
     "DeployRequest",
+    "DeployUserRequest",
     "Deployment",
     "ContainerFilter",
     "ContainerAction",

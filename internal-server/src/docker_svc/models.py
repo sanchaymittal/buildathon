@@ -43,6 +43,18 @@ class DeployRequest(BaseModel):
     )
 
 
+class DeployUserRequest(BaseModel):
+    """Minimal request model for user-scoped deployments."""
+
+    repository: str = Field(
+        description="GitHub repository in format 'owner/repo' or full URL"
+    )
+
+    user_id: str = Field(
+        description="Unique user identifier for tenant segregation"
+    )
+
+
 class ContainerStatus(BaseModel):
     """Container status information."""
     container_id: str
@@ -60,6 +72,11 @@ class Deployment(BaseModel):
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique deployment identifier"
+    )
+
+    user_id: Optional[str] = Field(
+        default=None,
+        description="User identifier associated with the deployment"
     )
 
     repository: str = Field(

@@ -20,6 +20,60 @@ Error payloads follow FastAPI’s default structure: `{ "detail": "message" }`.
 
 ---
 
+## MCP (Model Context Protocol)
+
+The MCP adapter exposes a minimal, open tool surface for external agents. No auth is required.
+
+### `POST /mcp/tools/list`
+List available MCP tools.
+
+Response: `200 OK` with `{ "tools": [ ... ] }`.
+
+### `POST /mcp/tools/call`
+Invoke an MCP tool.
+
+Request body:
+```json
+{
+  "name": "deploy_quick",
+  "arguments": {
+    "repository": "owner/repo",
+    "user_id": "user-123"
+  }
+}
+```
+
+Response body:
+```json
+{
+  "result": {
+    "id": "4c9b1b72",
+    "user_id": "user-123",
+    "repository": "owner/repo",
+    "branch": "main",
+    "image": "devops-repo:main-4c9b1b72",
+    "container_id": "...",
+    "container_name": "devops-repo-4c9b1b72",
+    "host_port": 32788,
+    "container_port": 80,
+    "url": "http://localhost:32788",
+    "status": "running",
+    "created_at": "2026-04-19T10:40:12.321928",
+    "env": {},
+    "labels": {
+      "managed-by": "devops-agent",
+      "deployment-id": "4c9b1b72",
+      "repository": "owner/repo",
+      "branch": "main",
+      "user-id": "user-123"
+    }
+  },
+  "is_error": false
+}
+```
+
+---
+
 ## Health
 
 ### `GET /health`
@@ -44,8 +98,12 @@ Responses:
   - `env` *(object, default `{}`)* – Environment variables to inject.
   - `build_args` *(object, default `{}`)* – Docker build arguments.
   - `name` *(string, optional)* – Friendly deployment name.
+- **DeployUserRequest**
+  - `repository` *(string, required)* – GitHub repo (`owner/name` or URL).
+  - `user_id` *(string, required)* – Unique user identifier for tenant segregation.
 - **Deployment**
   - `id` *(string)* – Deployment identifier.
+  - `user_id` *(string|null)* – Associated user identifier when provided.
   - `repository`, `branch` *(strings)*.
   - `image` *(string)* – Built Docker image tag.
   - `container_id`, `container_name` *(strings).* 
@@ -64,6 +122,15 @@ Request body: `DeployRequest`.
 
 Responses:
 - `201 Created` with a `Deployment` body.
+- `400 Bad Request` if cloning, building, or startup fails.
+
+### `POST /deployments/quick`
+Create a deployment using only a GitHub repo and a `user_id`. Other settings use defaults.
+
+Request body: `DeployUserRequest`.
+
+Responses:
+- `201 Created` with a `Deployment` body (includes `user_id`).
 - `400 Bad Request` if cloning, building, or startup fails.
 
 ### `GET /deployments`

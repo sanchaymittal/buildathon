@@ -80,6 +80,7 @@ Two ready-made health probes are available:
 - `GET /health/docker`
 
 A full endpoint catalog lives in [docs/api.md](docs/api.md).
+MCP access for external agents is documented in [docs/mcp.md](docs/mcp.md).
 
 ## Gemini Agents Integration
 The `gemini_agents.function_tool` decorators in `src/docker_svc/tools.py` and `src/github/github_tools.py` expose Docker and GitHub capabilities to Gemini Agents. Guardrails in `src/core/guardrails.py` provide security and sensitive-information tripwires for both inputs and outputs.

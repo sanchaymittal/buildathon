@@ -65,6 +65,7 @@ app.add_middleware(
 
 # Always register the compose router.
 app.include_router(routes.compose.router)
+app.include_router(routes.mcp.router)
 
 # Register legacy routers only when their underlying deps loaded.
 if routes._LEGACY_DOCKER_ROUTES:  # pragma: no branch
