@@ -123,7 +123,11 @@ class ComposeDeployService:
         raise ComposeDeployError(
             f"No compose file found in {project_path}. "
             f"Expected one of: {', '.join(_COMPOSE_FILENAMES)}",
-            suggestion="Add a compose.yml or docker-compose.yml to the project root.",
+            suggestion=(
+                "Add a compose.yml or docker-compose.yml to the project root, "
+                "or ask Forge to run scaffold_project to auto-generate one "
+                "for python / node / static stacks."
+            ),
         )
 
     def _default_project_name(self, project_path: Path) -> str:
