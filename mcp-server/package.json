@@ -1,23 +1,46 @@
 {
-  "name": "@xerant/mcp-server",
+  "name": "xerant-mcp-server",
   "version": "0.1.0",
-  "private": true,
-  "description": "MCP server bridging OpenCode (and other MCP clients) to the Xerant internal DevOps API.",
+  "description": "MCP server bridging OpenCode and other MCP clients to the Xerant internal DevOps API. Exposes 22 tools for local-compose deploys, GitHub-repo deploys, container lifecycle, and log tailing.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "opencode",
+    "devops",
+    "docker",
+    "docker-compose",
+    "xerant",
+    "deploy"
+  ],
+  "homepage": "https://github.com/sanchaymittal/buildathon/tree/main/mcp-server",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sanchaymittal/buildathon.git",
+    "directory": "mcp-server"
+  },
+  "bugs": "https://github.com/sanchaymittal/buildathon/issues",
+  "license": "MIT",
+  "author": "Xerant",
   "type": "module",
   "bin": {
-    "xerant-mcp": "./dist/index.js"
+    "xerant-mcp": "dist/index.js"
   },
   "main": "./dist/index.js",
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/index.js', 0o755)\"",
     "bundle": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --external:node:* --outfile=../.agents/skills/xerant/bin/xerant-mcp.mjs && node -e \"require('fs').chmodSync('../.agents/skills/xerant/bin/xerant-mcp.mjs', 0o755)\"",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
