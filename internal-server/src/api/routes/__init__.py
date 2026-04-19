@@ -1,12 +1,13 @@
 """API Routes - Route modules for FastAPI.
 
-The compose router is always importable. Legacy routers (deployments,
-containers, github) depend on optional packages (``docker``, ``agents``,
-``PyGithub``) and are imported defensively so the server can still start in
-a minimal environment.
+The compose and agent routers are always importable. Legacy routers
+(deployments, containers, github) depend on optional packages (``docker``,
+``google-generativeai``, ``PyGithub``) and are imported defensively so the
+server can still start in a minimal environment.
 """
 
 from . import compose
+from . import agent as agent_routes
 
 try:  # pragma: no cover - depends on optional deps
     from . import deployments, containers
@@ -25,7 +26,7 @@ except Exception:  # pragma: no cover
     github_routes = None  # type: ignore[assignment]
     _GITHUB_ROUTES = False
 
-__all__ = ["compose"]
+__all__ = ["compose", "agent_routes"]
 if _LEGACY_DOCKER_ROUTES:
     __all__.extend(["deployments", "containers"])
 if _GITHUB_ROUTES:

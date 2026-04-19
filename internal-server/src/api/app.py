@@ -34,7 +34,13 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
+    from ..gemini_agents.client import is_available as gemini_sdk_available
+
     logger.info("Starting Agentic DevOps API")
+    if not gemini_sdk_available():
+        logger.info(
+            "Gemini runtime disabled (install 'google-generativeai' to enable live agent runs)"
+        )
     if not routes._LEGACY_DOCKER_ROUTES:
         logger.info(
             "Legacy Docker routes disabled (install 'docker' + 'openai-agents' to enable)"
@@ -63,8 +69,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Always register the compose router.
+# Always register the compose and agent routers.
 app.include_router(routes.compose.router)
+app.include_router(routes.agent_routes.router)
 
 # Register legacy routers only when their underlying deps loaded.
 if routes._LEGACY_DOCKER_ROUTES:  # pragma: no branch
@@ -98,6 +105,37 @@ def compose_health_check() -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"status": "healthy", "docker": "connected"},
+    )
+
+
+@app.get("/health/gemini", tags=["health"])
+def gemini_health_check() -> JSONResponse:
+    """Check that Gemini credentials and SDK are available."""
+    from ..core.credentials import CredentialError, get_credential_manager
+    from ..gemini_agents.client import is_available as gemini_sdk_available
+
+    if not gemini_sdk_available():
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "gemini": "google-generativeai not installed",
+            },
+        )
+    try:
+        creds = get_credential_manager().get_gemini_credentials()
+    except CredentialError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "unhealthy", "gemini": str(exc)},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={
+            "status": "healthy",
+            "gemini": "configured",
+            "model": creds.model,
+        },
     )
 
 
