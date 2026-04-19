@@ -3,9 +3,17 @@ Deployment Routes - FastAPI endpoints for deployments.
 """
 
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+import uuid
 
-from ...docker_svc import DockerDeployService, DeployRequest, DeployUserRequest, Deployment
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Query
+
+from ...docker_svc import (
+    DockerDeployService,
+    DeployRequest,
+    DeployUserRequest,
+    Deployment,
+    DeploymentTicket,
+)
 from ...docker_svc.base import DockerServiceError
 from ...core.credentials import get_credential_manager
 from ..dependencies import get_deploy_service
@@ -60,12 +68,13 @@ def create_user_deployment(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/quick/replace", response_model=Deployment, status_code=status.HTTP_201_CREATED)
+@router.post("/quick/replace", response_model=DeploymentTicket, status_code=status.HTTP_201_CREATED)
 def replace_user_deployment(
     request: DeployUserRequest,
+    background_tasks: BackgroundTasks,
     deploy_service: DockerDeployService = Depends(get_deploy_service),
     github_token: Optional[str] = Depends(_get_github_token),
-) -> Deployment:
+) -> DeploymentTicket:
     """Replace any existing deployment for repo+user_id with a fresh deploy."""
     try:
         deploy_request = DeployRequest(
@@ -73,12 +82,43 @@ def replace_user_deployment(
             branch=request.branch,
         )
         token = request.github_token or github_token
-        deployment = deploy_service.replace_deployment(
+
+        existing = [
+            deployment
+            for deployment in deploy_service.deployments.values()
+            if deployment.repository == request.repository
+            and deployment.user_id == request.user_id
+        ]
+        for deployment in existing:
+            try:
+                deploy_service.remove_deployment(deployment.id)
+            except Exception:
+                pass
+
+        deploy_id = str(uuid.uuid4())[:8]
+        pending = deploy_service.create_pending_deployment(
             deploy_request,
             user_id=request.user_id,
-            github_token=token,
+            deploy_id=deploy_id,
         )
-        return deployment
+
+        background_tasks.add_task(
+            deploy_service.finalize_pending_deployment,
+            deploy_request,
+            request.user_id,
+            pending.id,
+            token,
+            pending.host_port,
+        )
+
+        return DeploymentTicket(
+            id=pending.id,
+            user_id=pending.user_id,
+            repository=pending.repository,
+            branch=pending.branch,
+            status=pending.status,
+            url=pending.url,
+        )
     except DockerServiceError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -94,11 +134,18 @@ def list_deployments(
 @router.get("/{deploy_id}", response_model=Deployment)
 def get_deployment(
     deploy_id: str,
+    user_id: Optional[str] = Query(None, description="User identifier for access validation"),
     deploy_service: DockerDeployService = Depends(get_deploy_service),
 ) -> Deployment:
     """Get deployment details."""
     try:
-        return deploy_service.get_deployment(deploy_id)
+        deployment = deploy_service.get_deployment(deploy_id)
+        if user_id and deployment.user_id and deployment.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Deployment does not belong to the provided user_id",
+            )
+        return deployment
     except DockerServiceError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
 
@@ -107,10 +154,17 @@ def get_deployment(
 def get_deployment_logs(
     deploy_id: str,
     tail: int = 100,
+    user_id: Optional[str] = Query(None, description="User identifier for access validation"),
     deploy_service: DockerDeployService = Depends(get_deploy_service),
 ) -> dict:
     """Get deployment logs."""
     try:
+        deployment = deploy_service.get_deployment(deploy_id)
+        if user_id and deployment.user_id and deployment.user_id != user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Deployment does not belong to the provided user_id",
+            )
         logs = deploy_service.get_deployment_logs(deploy_id, tail)
         return {"deploy_id": deploy_id, "logs": logs}
     except DockerServiceError as e:

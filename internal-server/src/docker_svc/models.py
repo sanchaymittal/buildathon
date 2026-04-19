@@ -147,6 +147,17 @@ class Deployment(BaseModel):
     )
 
 
+class DeploymentTicket(BaseModel):
+    """Minimal deployment response used for async operations."""
+
+    id: str = Field(description="Unique deployment identifier")
+    user_id: Optional[str] = Field(default=None, description="User identifier")
+    repository: str = Field(description="GitHub repository that was deployed")
+    branch: str = Field(default="main", description="Git branch that was deployed")
+    status: str = Field(description="Deployment status (building, running, failed)")
+    url: str = Field(description="URL to access the deployed application")
+
+
 class ContainerFilter(BaseModel):
     """Filter parameters for listing containers."""
     all: bool = Field(

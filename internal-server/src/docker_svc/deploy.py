@@ -162,26 +162,17 @@ class DockerDeployService:
         safe_name = "".join(c if c.isalnum() or c in "-_" else "-" for c in name)
         return f"devops-{safe_name}"
 
-    @docker_operation("deploy_from_github")
-    def deploy_from_github(
+    def _deploy_from_github(
         self,
         request: DeployRequest,
-        github_token: Optional[str] = None,
-        user_id: Optional[str] = None,
+        github_token: Optional[str],
+        user_id: Optional[str],
+        deploy_id: str,
+        host_port: Optional[int] = None,
     ) -> Deployment:
-        """
-        Deploy a GitHub repository to Docker.
+        """Internal deploy helper that allows fixed IDs and ports."""
 
-        Args:
-            request: Deployment request
-            github_token: Optional GitHub token for private repos
-
-        Returns:
-            Deployment object
-        """
         owner, repo = _parse_github_repo(request.repository)
-
-        deploy_id = str(uuid.uuid4())[:8]
         name = request.name or self._generate_deployment_name(request.repository)
         container_name = f"{name}-{deploy_id}"
 
@@ -200,18 +191,18 @@ class DockerDeployService:
             if not self._check_dockerfile(target_dir):
                 raise RepositoryError(
                     f"No Dockerfile found in {request.repository}:{request.branch}",
-                    suggestion="Add a Dockerfile to the repository root or use 'build_args' for runtime detection."
+                    suggestion="Add a Dockerfile to the repository root or use 'build_args' for runtime detection.",
                 )
 
             image_tag = f"devops-{repo}:{request.branch}-{deploy_id}"
 
-            build_result = self.docker.build_image(
+            self.docker.build_image(
                 path=str(target_dir),
                 tag=image_tag,
                 build_args=request.build_args,
             )
 
-            host_port = self.docker._allocate_free_port()
+            resolved_port = host_port or self.docker._allocate_free_port()
 
             labels = {
                 "managed-by": "devops-agent",
@@ -225,7 +216,7 @@ class DockerDeployService:
             container = self.docker.run_container(
                 image=image_tag,
                 name=container_name,
-                ports={str(host_port): request.container_port},
+                ports={str(resolved_port): request.container_port},
                 env=request.env,
                 labels=labels,
                 detach=True,
@@ -242,24 +233,67 @@ class DockerDeployService:
                 image=image_tag,
                 container_id=container.id,
                 container_name=container_name,
-                host_port=host_port,
+                host_port=resolved_port,
                 container_port=request.container_port,
-                url=f"http://localhost:{host_port}",
+                url=f"http://localhost:{resolved_port}",
                 status="running",
                 env=request.env,
                 labels=labels,
             )
 
             self.deployments[deploy_id] = deployment
-
             return deployment
-
         except Exception as e:
             logger.error(f"Deployment failed: {e}")
             raise
         finally:
             if target_dir.exists():
                 shutil.rmtree(target_dir, ignore_errors=True)
+
+    @docker_operation("deploy_from_github")
+    def deploy_from_github(
+        self,
+        request: DeployRequest,
+        github_token: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> Deployment:
+        """Deploy a GitHub repository to Docker."""
+
+        deploy_id = str(uuid.uuid4())[:8]
+        return self._deploy_from_github(
+            request=request,
+            github_token=github_token,
+            user_id=user_id,
+            deploy_id=deploy_id,
+        )
+
+    def create_pending_deployment(
+        self,
+        request: DeployRequest,
+        user_id: str,
+        deploy_id: str,
+    ) -> Deployment:
+        """Create a pending deployment record and reserve a port."""
+
+        host_port = self.docker._allocate_free_port()
+        deployment = Deployment(
+            id=deploy_id,
+            user_id=user_id,
+            repository=request.repository,
+            branch=request.branch,
+            image="pending",
+            container_id="",
+            container_name="",
+            host_port=host_port,
+            container_port=request.container_port,
+            url=f"http://localhost:{host_port}",
+            status="building",
+            env=request.env,
+            labels={"managed-by": "devops-agent", "user-id": user_id},
+        )
+
+        self.deployments[deploy_id] = deployment
+        return deployment
 
     @docker_operation("replace_deployment")
     def replace_deployment(
@@ -287,11 +321,38 @@ class DockerDeployService:
                     exc,
                 )
 
-        return self.deploy_from_github(
-            request,
+        deploy_id = str(uuid.uuid4())[:8]
+        return self._deploy_from_github(
+            request=request,
             github_token=github_token,
             user_id=user_id,
+            deploy_id=deploy_id,
         )
+
+    def finalize_pending_deployment(
+        self,
+        request: DeployRequest,
+        user_id: str,
+        deploy_id: str,
+        github_token: Optional[str],
+        host_port: int,
+    ) -> None:
+        """Finalize a pending deployment in the background."""
+
+        try:
+            self._deploy_from_github(
+                request=request,
+                github_token=github_token,
+                user_id=user_id,
+                deploy_id=deploy_id,
+                host_port=host_port,
+            )
+        except Exception as exc:
+            failed = self.deployments.get(deploy_id)
+            if failed:
+                failed.status = "failed"
+                self.deployments[deploy_id] = failed
+            logger.error("Async deployment failed: %s", exc)
 
     def list_deployments(self) -> List[Deployment]:
         """List all deployments."""

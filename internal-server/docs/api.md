@@ -101,6 +101,7 @@ Responses:
 - **DeployUserRequest**
   - `repository` *(string, required)* – GitHub repo (`owner/name` or URL).
   - `user_id` *(string, required)* – Unique user identifier for tenant segregation.
+  - `branch` *(string, default `"main"`)* – Git branch to deploy.
   - `github_token` *(string, optional)* – GitHub token for private repos.
 - **Deployment**
   - `id` *(string)* – Deployment identifier.
@@ -115,6 +116,12 @@ Responses:
   - `logs_tail` *(string|null)* – Last log tail if captured.
   - `env` *(object)* – Environment variables used.
   - `labels` *(object)* – Docker labels applied to the container.
+- **DeploymentTicket**
+  - `id` *(string)* – Deployment identifier.
+  - `user_id` *(string|null)* – Associated user identifier when provided.
+  - `repository`, `branch` *(strings)*.
+  - `status` *(string)* – `building`, `running`, `failed`.
+  - `url` *(string)* – Access URL reserved at request time.
 
 ### `POST /deployments`
 Create a deployment from a GitHub repository.
@@ -140,7 +147,7 @@ Delete any existing deployment for the same `repository` + `user_id`, then deplo
 Request body: `DeployUserRequest`.
 
 Responses:
-- `201 Created` with a `Deployment` body (includes `user_id`).
+- `201 Created` with a `DeploymentTicket` body (includes `user_id`, `status=building`, `url`).
 - `400 Bad Request` if cloning, building, or startup fails.
 
 ### `GET /deployments`

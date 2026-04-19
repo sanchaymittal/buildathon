@@ -62,6 +62,7 @@ curl -s -X POST http://localhost:8000/deployments/quick \
   -d '{
     "repository": "owner/repo",
     "user_id": "user-123",
+    "branch": "main",
     "github_token": "<optional_token>"
   }'
 ```
@@ -74,11 +75,13 @@ curl -s -X POST http://localhost:8000/deployments/quick/replace \
   -H "Content-Type: application/json" \
   -d '{
     "repository": "owner/repo",
-    "user_id": "user-123"
+    "user_id": "user-123",
+    "branch": "main",
+    "github_token": "<optional_token>"
   }'
 ```
 
-The response returns a `Deployment` object with `id`, `container_name`, and `url`.
+This returns immediately with a deployment ticket (status `building`), then continues the deploy in the background.
 
 ## 4) Check Status and Logs
 ```bash

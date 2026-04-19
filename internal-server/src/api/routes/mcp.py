@@ -1,11 +1,13 @@
 """MCP Routes - Minimal Model Context Protocol adapter."""
 
+import uuid
+
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from pydantic import BaseModel, Field
 
-from ...docker_svc import DeployRequest, DeployUserRequest, Deployment
+from ...docker_svc import DeployRequest, DeployUserRequest, Deployment, DeploymentTicket
 from ...docker_svc.base import DockerServiceError
 from ...core.credentials import get_credential_manager
 from ..dependencies import get_deploy_service
@@ -57,6 +59,7 @@ def _get_github_token() -> Optional[str]:
 def _tool_schemas() -> List[Dict[str, Any]]:
     deploy_input_schema = DeployUserRequest.model_json_schema()
     deployment_output_schema = Deployment.model_json_schema()
+    ticket_output_schema = DeploymentTicket.model_json_schema()
 
     return [
         {
@@ -69,7 +72,7 @@ def _tool_schemas() -> List[Dict[str, Any]]:
             "name": "deploy_replace",
             "description": "Delete prior repo+user deployment and deploy again.",
             "input_schema": deploy_input_schema,
-            "output_schema": deployment_output_schema,
+            "output_schema": ticket_output_schema,
         },
         {
             "name": "deploy_status",
@@ -116,6 +119,7 @@ def list_tools() -> Dict[str, Any]:
 @router.post("/tools/call", response_model=ToolCallResponse)
 def call_tool(
     payload: ToolCallRequest,
+    background_tasks: BackgroundTasks,
     deploy_service=Depends(get_deploy_service),
 ) -> ToolCallResponse:
     """Invoke an MCP tool call."""
@@ -123,7 +127,10 @@ def call_tool(
     try:
         if payload.name == "deploy_quick":
             request = DeployUserRequest(**payload.arguments)
-            deploy_request = DeployRequest(repository=request.repository)
+            deploy_request = DeployRequest(
+                repository=request.repository,
+                branch=request.branch,
+            )
             deployment = deploy_service.deploy_from_github(
                 deploy_request,
                 github_token=request.github_token or _get_github_token(),
@@ -139,13 +146,49 @@ def call_tool(
 
         if payload.name == "deploy_replace":
             request = DeployUserRequest(**payload.arguments)
-            deploy_request = DeployRequest(repository=request.repository)
-            deployment = deploy_service.replace_deployment(
+            deploy_request = DeployRequest(
+                repository=request.repository,
+                branch=request.branch,
+            )
+            token = request.github_token or _get_github_token()
+
+            existing = [
+                deployment
+                for deployment in deploy_service.deployments.values()
+                if deployment.repository == request.repository
+                and deployment.user_id == request.user_id
+            ]
+            for deployment in existing:
+                try:
+                    deploy_service.remove_deployment(deployment.id)
+                except Exception:
+                    pass
+
+            deploy_id = str(uuid.uuid4())[:8]
+            pending = deploy_service.create_pending_deployment(
                 deploy_request,
                 user_id=request.user_id,
-                github_token=request.github_token or _get_github_token(),
+                deploy_id=deploy_id,
             )
-            return ToolCallResponse(result=deployment)
+
+            background_tasks.add_task(
+                deploy_service.finalize_pending_deployment,
+                deploy_request,
+                request.user_id,
+                pending.id,
+                token,
+                pending.host_port,
+            )
+
+            ticket = DeploymentTicket(
+                id=pending.id,
+                user_id=pending.user_id,
+                repository=pending.repository,
+                branch=pending.branch,
+                status=pending.status,
+                url=pending.url,
+            )
+            return ToolCallResponse(result=ticket)
 
         if payload.name == "deploy_logs":
             request = DeploymentLogsInput(**payload.arguments)
