@@ -1,0 +1,3 @@
+"""
+GitHub tests package initialization.
+"""

@@ -1,0 +1,8 @@
+#!/bin/bash
+# Wrapper script to run the CLI with the agentic-devops command
+
+# Get the directory of this script
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
+# Run the CLI direct script with the provided arguments
+python "$SCRIPT_DIR/run_cli_direct.py" "$@"
