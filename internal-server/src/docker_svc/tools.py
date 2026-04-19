@@ -35,7 +35,7 @@ def _get_docker_service() -> DockerService:
     return DockerService()
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def deploy_repository(
     ctx: RunContextWrapper[DevOpsContext],
     request: DeployRequest,
@@ -66,7 +66,7 @@ async def deploy_repository(
     return deployment
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def list_deployments(
     ctx: RunContextWrapper[DevOpsContext],
 ) -> List[Deployment]:
@@ -85,7 +85,7 @@ async def list_deployments(
     return deploy_service.list_deployments()
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def get_deployment(
     ctx: RunContextWrapper[DevOpsContext],
     deploy_id: str,
@@ -106,7 +106,7 @@ async def get_deployment(
     return deploy_service.get_deployment(deploy_id)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def stop_deployment(
     ctx: RunContextWrapper[DevOpsContext],
     deploy_id: str,
@@ -127,7 +127,7 @@ async def stop_deployment(
     return deploy_service.stop_deployment(deploy_id)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def start_deployment(
     ctx: RunContextWrapper[DevOpsContext],
     deploy_id: str,
@@ -148,7 +148,7 @@ async def start_deployment(
     return deploy_service.start_deployment(deploy_id)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def restart_deployment(
     ctx: RunContextWrapper[DevOpsContext],
     deploy_id: str,
@@ -169,7 +169,7 @@ async def restart_deployment(
     return deploy_service.restart_deployment(deploy_id)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def remove_deployment(
     ctx: RunContextWrapper[DevOpsContext],
     deploy_id: str,
@@ -190,7 +190,7 @@ async def remove_deployment(
     return deploy_service.remove_deployment(deploy_id)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def get_deployment_logs(
     ctx: RunContextWrapper[DevOpsContext],
     deploy_id: str,
@@ -213,7 +213,7 @@ async def get_deployment_logs(
     return deploy_service.get_deployment_logs(deploy_id, tail)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def list_containers(
     ctx: RunContextWrapper[DevOpsContext],
     filter: ContainerFilter,
@@ -237,7 +237,7 @@ async def list_containers(
     )
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def get_container(
     ctx: RunContextWrapper[DevOpsContext],
     container_id: str,
@@ -258,7 +258,7 @@ async def get_container(
     return docker_service.get_container(container_id)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def stop_container(
     ctx: RunContextWrapper[DevOpsContext],
     action: ContainerAction,
@@ -281,7 +281,7 @@ async def stop_container(
     return {"status": "stopped", "container_id": action.container_id}
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def start_container(
     ctx: RunContextWrapper[DevOpsContext],
     container_id: str,
@@ -304,7 +304,7 @@ async def start_container(
     return {"status": "started", "container_id": container_id}
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def restart_container(
     ctx: RunContextWrapper[DevOpsContext],
     container_id: str,
@@ -327,7 +327,7 @@ async def restart_container(
     return {"status": "restarted", "container_id": container_id}
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def remove_container(
     ctx: RunContextWrapper[DevOpsContext],
     action: ContainerAction,
@@ -350,7 +350,7 @@ async def remove_container(
     return {"status": "removed", "container_id": action.container_id}
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def get_container_logs(
     ctx: RunContextWrapper[DevOpsContext],
     request: ContainerLogRequest,
@@ -375,7 +375,7 @@ async def get_container_logs(
     )
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def list_images(
     ctx: RunContextWrapper[DevOpsContext],
     dangling: bool = False,

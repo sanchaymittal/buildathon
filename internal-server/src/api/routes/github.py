@@ -78,3 +78,26 @@ def list_pull_requests(
         return github.list_pull_requests(repo, owner=owner, state=state)
     except GitHubError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+
+@router.get("/repos/{owner}/{repo}/contents/{path:path}")
+def get_repo_contents(
+    owner: str,
+    repo: str,
+    path: str,
+    ref: Optional[str] = Query(None, description="Branch, tag, or commit SHA"),
+    github: GitHubService = Depends(_get_github_service),
+):
+    """
+    Get a file or directory's contents from a GitHub repository.
+
+    For files, the response includes `content` (base64) and `decoded_content` (utf-8 text).
+    For directories, returns a list of entries.
+
+    Used by the Xerant MCP bridge / CLI skill to diff a local Dockerfile against
+    the one that will actually be built server-side.
+    """
+    try:
+        return github.get_content(repo, path, owner=owner, ref=ref)
+    except GitHubError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))

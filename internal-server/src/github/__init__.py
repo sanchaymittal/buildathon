@@ -5,6 +5,15 @@ This package includes modules for repositories, issues, pull requests, and other
 GitHub resources, with integration for the Gemini Agents SDK.
 """
 
+from .github import (
+    GitHubService,
+    GitHubError,
+    AuthenticationError,
+    ResourceNotFoundError,
+    ValidationError,
+    RateLimitError,
+)
+
 from .github_models import (
     GitHubRepoRequest,
     GitHubIssueRequest,
@@ -15,15 +24,6 @@ from .github_models import (
     GitHubPullRequest
 )
 
-from .github import (
-    GitHubService,
-    GitHubError,
-    AuthenticationError,
-    ResourceNotFoundError,
-    ValidationError,
-    RateLimitError,
-)
-
 from .github_tools import (
     get_repository,
     list_issues,
@@ -32,6 +32,14 @@ from .github_tools import (
 )
 
 __all__ = [
+    # GitHub Service + errors
+    'GitHubService',
+    'GitHubError',
+    'AuthenticationError',
+    'ResourceNotFoundError',
+    'ValidationError',
+    'RateLimitError',
+
     # GitHub Models
     'GitHubRepoRequest',
     'GitHubIssueRequest',
@@ -41,14 +49,6 @@ __all__ = [
     'GitHubIssue',
     'GitHubPullRequest',
 
-    # GitHub Service
-    'GitHubService',
-    'GitHubError',
-    'AuthenticationError',
-    'ResourceNotFoundError',
-    'ValidationError',
-    'RateLimitError',
-    
     # GitHub Tools
     'get_repository',
     'list_issues',
