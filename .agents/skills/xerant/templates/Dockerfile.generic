@@ -1,0 +1,21 @@
+# syntax=docker/dockerfile:1.7
+# Language-agnostic starter. Replace the build/runtime layers for your stack.
+# This template intentionally fails to build until customised — by design, so
+# that deployers do not ship a wrong default image.
+
+FROM alpine:3.20 AS base
+RUN apk add --no-cache ca-certificates tzdata
+
+FROM base AS builder
+WORKDIR /src
+COPY . .
+# TODO: replace with your build command.
+RUN echo "Customize this Dockerfile for your stack before deploying." && exit 1
+
+FROM base AS runner
+WORKDIR /app
+RUN addgroup -S app && adduser -S -G app app
+COPY --from=builder --chown=app:app /src/dist /app
+USER app
+EXPOSE 8080
+CMD ["/app/entrypoint"]
