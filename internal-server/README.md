@@ -42,9 +42,32 @@ The service reads configuration and secrets in this order:
 3. Environment variables prefixed with `DEVOPS_`, using double underscores for nesting (example: `DEVOPS_DOCKER__BASE_URL=http://127.0.0.1:2375`).
 
 ### Credentials
-GitHub and Docker credentials are loaded via `src/core/credentials.py`:
-- GitHub token: set `GITHUB_TOKEN` or add it to `~/.devops/credentials.json` under `{"github": {"token": "..."}}`.
-- Docker remote access: `DOCKER_BASE_URL`, `DOCKER_TLS_VERIFY`, and `DOCKER_CERT_PATH` when targeting remote daemons.
+Credentials are loaded via `src/core/credentials.py` in this precedence order:
+process environment → `~/.devops/credentials.json` → config file defaults.
+
+- **Gemini API key (required for the agent):** set `GEMINI_API_KEY` (preferred)
+  or `GOOGLE_API_KEY`. Alternatively add it to
+  `~/.devops/credentials.json`:
+  ```json
+  {
+    "gemini": {
+      "api_key": "AIza...",
+      "model": "gemini-2.5-flash"
+    }
+  }
+  ```
+  Override the model with `GEMINI_MODEL=gemini-2.5-pro` or
+  `DEVOPS_GEMINI__MODEL=gemini-2.5-pro`.
+
+- **GitHub token (optional):** set `GITHUB_TOKEN` or add it to
+  `~/.devops/credentials.json` under `{"github": {"token": "..."}}`.
+
+- **Docker remote access (optional):** `DOCKER_BASE_URL`, `DOCKER_TLS_VERIFY`,
+  `DOCKER_CERT_PATH` when targeting remote daemons (legacy flow only).
+
+A starter `.env.example` is included; copy it to `.env` and fill in the
+values you need. The MVP compose flow requires no credentials at all; only
+the Gemini agent and the legacy GitHub / remote-Docker flows do.
 
 ## Usage
 
@@ -83,7 +106,66 @@ A full endpoint catalog lives in [docs/api.md](docs/api.md).
 MCP access for external agents is documented in [docs/mcp.md](docs/mcp.md).
 
 ## Gemini Agents Integration
-The `gemini_agents.function_tool` decorators in `src/docker_svc/tools.py` and `src/github/github_tools.py` expose Docker and GitHub capabilities to Gemini Agents. Guardrails in `src/core/guardrails.py` provide security and sensitive-information tripwires for both inputs and outputs.
+
+The internal server spawns real Gemini-backed DevOps agents that call the
+project's compose / Docker / GitHub tools through a proper function-calling
+loop (`src/gemini_agents/runner.py`).
+
+### Where to put the API key
+
+Any of these (first one found wins):
+
+1. `GEMINI_API_KEY` environment variable (preferred)
+2. `GOOGLE_API_KEY` environment variable
+3. `~/.devops/credentials.json` → `{"gemini": {"api_key": "..."}}`
+
+See `.env.example` in the repo root.
+
+### How spawning works
+
+- `src/agent/factory.py` assembles an `Agent` with a default tool set that
+  starts with the local-compose MVP (`deploy_local_project`,
+  `project_status`, `stop_local_project`, `project_logs`) and extends with
+  legacy Docker and GitHub tools whenever their optional dependencies are
+  installed.
+- `src/agent/sessions.py` keeps sessions in memory, each with its own
+  conversation history, `DevOpsContext`, and async lock.
+- `src/gemini_agents/runner.py` converts the function-tool signatures to
+  Gemini function declarations, runs the tool-call loop (capped at 16
+  calls by default), and applies input/output guardrails from
+  `src/core/guardrails.py`.
+- Every turn is appended as a JSON line to `~/.devops/agent.log`
+  (override with `DEVOPS_AGENT__LOG_FILE`).
+
+### HTTP surface (`/agent/*`)
+
+```
+POST /agent/run                         # one-shot prompt
+POST /agent/sessions                    # spawn a session
+GET  /agent/sessions                    # list sessions
+GET  /agent/sessions/{id}               # session summary
+POST /agent/sessions/{id}/run           # run a prompt against a session
+DELETE /agent/sessions/{id}             # close a session
+GET  /health/gemini                     # key + SDK availability check
+```
+
+### CLI
+
+```bash
+# One-shot
+devops-agent agent run "Deploy examples/sample-app and tail the web logs"
+
+# Persistent sessions (in-process only)
+SID=$(devops-agent agent spawn)
+devops-agent agent session-run "$SID" "What services are running?"
+devops-agent agent sessions
+devops-agent agent close "$SID"
+```
+
+The low-level `gemini_agents.function_tool` decorators in
+`src/docker_svc/tools.py`, `src/docker_svc/compose_tools.py`, and
+`src/github/github_tools.py` are what actually get wired into the
+Gemini function-calling loop.
 
 ## Testing
 ```bash

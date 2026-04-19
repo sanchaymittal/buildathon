@@ -277,6 +277,51 @@ def setup_serve_parser(subparsers):
     )
 
 
+def setup_agent_parser(subparsers):
+    """Set up the argument parser for the Gemini-backed agent."""
+    agent_parser = subparsers.add_parser(
+        "agent", help="Run or manage the Gemini-backed DevOps agent"
+    )
+    agent_subparsers = agent_parser.add_subparsers(
+        dest="agent_command", help="Agent command"
+    )
+
+    run_parser = agent_subparsers.add_parser(
+        "run", help="Run a one-shot prompt against a fresh agent"
+    )
+    run_parser.add_argument("prompt", help="Prompt text for the agent")
+    run_parser.add_argument(
+        "--model", default=None, help="Override the Gemini model (e.g. gemini-2.5-pro)"
+    )
+    run_parser.add_argument("--user-id", default="cli", help="Audit user identifier")
+    run_parser.add_argument(
+        "--json", action="store_true", help="Emit JSON instead of pretty output"
+    )
+
+    spawn_parser = agent_subparsers.add_parser(
+        "spawn", help="Spawn a persistent agent session and print its id"
+    )
+    spawn_parser.add_argument("--model", default=None)
+    spawn_parser.add_argument("--user-id", default="cli")
+
+    sessions_parser = agent_subparsers.add_parser(
+        "sessions", help="List active in-process sessions (current CLI only)"
+    )
+    sessions_parser.add_argument(
+        "--json", action="store_true", help="Emit JSON instead of a table"
+    )
+
+    session_run_parser = agent_subparsers.add_parser(
+        "session-run", help="Run a prompt against an existing session"
+    )
+    session_run_parser.add_argument("session_id")
+    session_run_parser.add_argument("prompt")
+    session_run_parser.add_argument("--json", action="store_true")
+
+    close_parser = agent_subparsers.add_parser("close", help="Close an agent session")
+    close_parser.add_argument("session_id")
+
+
 def format_output(data, format_type="table"):
     """Format output data."""
     if format_type == "json":
@@ -587,6 +632,99 @@ def handle_serve_command(args):
         return handle_cli_error(e)
 
 
+def _print_run_result(result, as_json: bool) -> None:
+    if as_json:
+        payload = {
+            "output": result.output,
+            "tool_calls": [
+                {
+                    "name": tc.name,
+                    "arguments": tc.arguments,
+                    "result": tc.result,
+                    "error": tc.error,
+                    "duration_ms": tc.duration_ms,
+                }
+                for tc in result.tool_calls
+            ],
+            "trace_id": result.trace_id,
+            "model": result.model,
+            "finish_reason": result.finish_reason,
+            "iterations": result.iterations,
+        }
+        print(json.dumps(payload, indent=2, default=str))
+        return
+
+    print(f"{COLORS['cyan']}Agent ({result.model}){COLORS['reset']}")
+    if result.tool_calls:
+        print(f"{COLORS['cyan']}Tool calls:{COLORS['reset']}")
+        for tc in result.tool_calls:
+            status = tc.error or f"ok in {tc.duration_ms} ms"
+            print(f"  - {tc.name}({tc.arguments}) -> {status}")
+    print(f"\n{COLORS['green']}Output:{COLORS['reset']}\n{result.output}")
+    print(
+        f"\n{COLORS['yellow']}[trace={result.trace_id} finish={result.finish_reason}]{COLORS['reset']}"
+    )
+
+
+def handle_agent_command(args):
+    """Handle 'agent ...' commands."""
+    try:
+        import asyncio
+
+        from .agent import get_session_store
+
+        store = get_session_store()
+
+        if not args.agent_command:
+            print_error(
+                "Missing agent subcommand",
+                suggestion="Try 'agent run \"Deploy examples/sample-app\"'.",
+            )
+            return 1
+
+        if args.agent_command == "run":
+            result = asyncio.run(
+                store.one_shot(args.prompt, user_id=args.user_id, model=args.model)
+            )
+            _print_run_result(result, args.json)
+            return 0
+
+        if args.agent_command == "spawn":
+            session = store.spawn(user_id=args.user_id, model=args.model)
+            print(session.session_id)
+            return 0
+
+        if args.agent_command == "sessions":
+            sessions = [s.summary() for s in store.list()]
+            if args.json:
+                print(json.dumps(sessions, indent=2, default=str))
+            elif not sessions:
+                print(f"{COLORS['yellow']}No active sessions.{COLORS['reset']}")
+            else:
+                print(format_output(sessions, "table"))
+            return 0
+
+        if args.agent_command == "session-run":
+            result = asyncio.run(store.run(args.session_id, args.prompt))
+            _print_run_result(result, args.json)
+            return 0
+
+        if args.agent_command == "close":
+            closed = store.close(args.session_id)
+            if closed:
+                print(
+                    f"{COLORS['green']}Closed session {args.session_id}{COLORS['reset']}"
+                )
+                return 0
+            print_error(f"Session {args.session_id} not found")
+            return 1
+
+        return 0
+
+    except Exception as e:  # noqa: BLE001
+        return handle_cli_error(e)
+
+
 def main():
     """Main entry point for the CLI."""
     try:
@@ -598,6 +736,7 @@ def main():
         setup_docker_parser(subparsers)
         setup_github_parser(subparsers)
         setup_serve_parser(subparsers)
+        setup_agent_parser(subparsers)
 
         args = parser.parse_args()
 
@@ -622,6 +761,9 @@ def main():
 
         elif args.command == "serve":
             handle_serve_command(args)
+
+        elif args.command == "agent":
+            sys.exit(handle_agent_command(args))
 
         sys.exit(0)
 
