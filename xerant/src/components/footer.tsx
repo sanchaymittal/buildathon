@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
+import { XerantLockupHorizontal } from "./brand";
 
 const CONTACT_EMAIL = "hi@xerant.cloud";
 const TWITTER_URL = "https://x.com/xerant_cloud";
@@ -41,6 +42,7 @@ const COLS = [
       { label: "Compare", href: "#compare" },
       { label: "Pricing", href: "#pricing" },
       { label: "FAQ", href: "#faq" },
+      { label: "Brand", href: "/brand" },
     ],
   },
   {
@@ -61,11 +63,12 @@ export function Footer() {
           <div className="max-w-sm">
             <Link
               href="/"
-              className="text-[18px] font-medium tracking-[-0.02em] text-[var(--color-fg)]"
+              className="flex items-center text-[var(--color-fg)]"
+              aria-label="Xerant home"
             >
-              XERANT
+              <XerantLockupHorizontal size={30} />
             </Link>
-            <p className="mt-4 text-[15px] leading-[1.55] text-[var(--color-fg-muted)]">
+            <p className="mt-5 text-[15px] leading-[1.55] text-[var(--color-fg-muted)]">
               A specialized DevOps team. Sandboxed and on-call.
             </p>
             <p className="mt-6 text-[14px] text-[var(--color-fg-muted)]">

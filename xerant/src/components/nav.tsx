@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { CtaButton } from "./cta-button";
+import { XerantLockupHorizontal } from "./brand";
 
 const LINKS = [
   { label: "Team", href: "#team" },
   { label: "Compare", href: "#compare" },
   { label: "Pricing", href: "#pricing" },
+  { label: "Brand", href: "/brand" },
 ];
 
 export function Nav() {
@@ -30,10 +32,10 @@ export function Nav() {
         <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-6 md:px-10 lg:px-20">
           <Link
             href="/"
-            className="text-[18px] font-medium tracking-[-0.02em] text-[var(--color-fg)]"
+            className="flex items-center text-[var(--color-fg)]"
             aria-label="Xerant home"
           >
-            XERANT
+            <XerantLockupHorizontal size={26} />
           </Link>
 
           <div className="hidden items-center gap-10 md:flex">
@@ -78,9 +80,10 @@ export function Nav() {
             <Link
               href="/"
               onClick={() => setOpen(false)}
-              className="text-[18px] font-medium tracking-[-0.02em]"
+              className="flex items-center"
+              aria-label="Xerant home"
             >
-              XERANT
+              <XerantLockupHorizontal size={26} />
             </Link>
             <button
               type="button"

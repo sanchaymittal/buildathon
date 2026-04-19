@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Xerant — Logo Concepts</title>
+<style>
+  :root {
+    --bg: #000; --fg: #F5F5F5; --muted: #8A8A8E; --border: #1F1F22; --accent: #FFB800;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    padding: 48px 64px 16px; border-bottom: 1px solid var(--border);
+  }
+  header .eyebrow { color: var(--muted); letter-spacing: 3px; font-size: 12px; text-transform: uppercase; }
+  header h1 { margin: 8px 0 0; font-size: 32px; letter-spacing: -0.5px; font-weight: 600; }
+  header p { color: var(--muted); margin-top: 8px; }
+  .grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border);
+  }
+  .card { background: var(--bg); padding: 48px 32px; }
+  .card .label { color: var(--muted); letter-spacing: 3px; font-size: 11px; text-transform: uppercase; }
+  .card h2 { margin: 4px 0 24px; font-size: 18px; font-weight: 600; letter-spacing: -0.2px; }
+  .card .stage {
+    background: #0A0A0A; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    aspect-ratio: 1 / 1; margin-bottom: 20px;
+  }
+  .card svg { width: 72%; height: auto; }
+  .card .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: var(--muted); line-height: 1.6; }
+  .card .tag { display: inline-block; padding: 2px 8px; border: 1px solid var(--border); font-size: 10px; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-right: 4px; }
+  .card .pros li { margin: 4px 0; }
+  .pair {
+    display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+    background: #0A0A0A; border: 1px solid var(--border);
+  }
+  .pair svg { width: 40px; height: 40px; }
+  .pair .word { font-size: 22px; font-weight: 600; letter-spacing: 4px; }
+  footer { padding: 24px 64px; color: var(--muted); border-top: 1px solid var(--border); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">XERANT · Brand Concepts</div>
+  <h1>Pick a direction.</h1>
+  <p>Three marks, one consistent wordmark. All use the existing palette (#000, #F5F5F5, #FFB800).</p>
+</header>
+
+<div class="grid">
+  <section class="card">
+    <div class="label">Concept A</div>
+    <h2>Sandbox Cube</h2>
+    <div class="stage">
+      <object data="concept-a-cube.svg" type="image/svg+xml" aria-label="Concept A"></object>
+    </div>
+    <div class="pair">
+      <object data="concept-a-cube.svg" type="image/svg+xml"></object>
+      <span class="word">XERANT</span>
+    </div>
+    <div style="margin-top:20px" class="mono">
+      <span class="tag">container</span><span class="tag">isometric</span><span class="tag">literal</span>
+      <ul class="pros">
+        <li>Most legible metaphor: container + X.</li>
+        <li>Works best at medium sizes; busy as favicon.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label">Concept B</div>
+    <h2>Agent Lattice</h2>
+    <div class="stage">
+      <object data="concept-b-nodes.svg" type="image/svg+xml" aria-label="Concept B"></object>
+    </div>
+    <div class="pair">
+      <object data="concept-b-nodes.svg" type="image/svg+xml"></object>
+      <span class="word">XERANT</span>
+    </div>
+    <div style="margin-top:20px" class="mono">
+      <span class="tag">agents</span><span class="tag">network</span><span class="tag">abstract</span>
+      <ul class="pros">
+        <li>Echoes the 5-agent team (amber node = orchestrator).</li>
+        <li>Distinctive; reads as "graph of things".</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="label">Concept C</div>
+    <h2>Sentry Shield</h2>
+    <div class="stage">
+      <object data="concept-c-shield.svg" type="image/svg+xml" aria-label="Concept C"></object>
+    </div>
+    <div class="pair">
+      <object data="concept-c-shield.svg" type="image/svg+xml"></object>
+      <span class="word">XERANT</span>
+    </div>
+    <div style="margin-top:20px" class="mono">
+      <span class="tag">security</span><span class="tag">bold</span><span class="tag">avatar-friendly</span>
+      <ul class="pros">
+        <li>Strongest at tiny sizes (favicon, Twitter avatar).</li>
+        <li>Tactical/defense read — matches WARDEN/SENTRY naming.</li>
+      </ul>
+    </div>
+  </section>
+</div>
+
+<footer>
+  Files: <code>marketing/brand/concepts/</code> · open this file in a browser to preview.
+</footer>
+
+</body>
+</html>

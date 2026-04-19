@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="Xerant concept B — node lattice X">
+  <rect width="400" height="400" fill="#000000"/>
+  <g transform="translate(200 200)">
+    <!-- connecting edges -->
+    <g stroke="#2A2A2E" stroke-width="3">
+      <line x1="-110" y1="-110" x2="110" y2="110"/>
+      <line x1="110"  y1="-110" x2="-110" y2="110"/>
+      <line x1="-110" y1="-110" x2="110" y2="-110"/>
+      <line x1="-110" y1="110"  x2="110" y2="110"/>
+    </g>
+    <!-- amber diagonal active edges -->
+    <g stroke="#FFB800" stroke-width="4" stroke-linecap="round">
+      <line x1="-90"  y1="-90" x2="-20" y2="-20"/>
+      <line x1="20"   y1="20"  x2="90"  y2="90"/>
+      <line x1="90"   y1="-90" x2="20"  y2="-20"/>
+      <line x1="-20"  y1="20"  x2="-90" y2="90"/>
+    </g>
+    <!-- five nodes: 4 corners + 1 center -->
+    <g fill="#000000" stroke="#F5F5F5" stroke-width="4">
+      <circle cx="-110" cy="-110" r="14"/>
+      <circle cx="110"  cy="-110" r="14"/>
+      <circle cx="-110" cy="110"  r="14"/>
+      <circle cx="110"  cy="110"  r="14"/>
+    </g>
+    <!-- center node amber -->
+    <circle cx="0" cy="0" r="16" fill="#FFB800" stroke="#FFB800" stroke-width="4"/>
+  </g>
+</svg>

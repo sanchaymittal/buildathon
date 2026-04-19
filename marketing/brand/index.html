@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Xerant — Brand Sheet</title>
+<style>
+  :root { --bg:#000; --fg:#F5F5F5; --muted:#8A8A8E; --border:#1F1F22; --accent:#FFB800; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+    font-family: ui-sans-serif, system-ui, -apple-system, Inter, sans-serif;
+    -webkit-font-smoothing: antialiased; }
+  header { padding:48px 64px; border-bottom:1px solid var(--border); }
+  header .eyebrow { color:var(--muted); letter-spacing:3px; font-size:12px; text-transform:uppercase; }
+  header h1 { margin:8px 0 0; font-size:40px; font-weight:600; letter-spacing:-1px; }
+  header p { color:var(--muted); margin-top:8px; font-size:14px; }
+  section { padding:48px 64px; border-bottom:1px solid var(--border); }
+  section .label { color:var(--muted); letter-spacing:3px; font-size:11px; text-transform:uppercase; }
+  section h2 { margin:4px 0 24px; font-size:22px; font-weight:600; letter-spacing:-0.3px; }
+
+  .cover-frame { border:1px solid var(--border); background:#0A0A0A; padding:0; display:inline-block; }
+  .cover-frame img { display:block; width:1200px; height:auto; }
+
+  .row { display:flex; gap:24px; flex-wrap:wrap; align-items:center; }
+  .tile { border:1px solid var(--border); background:#0A0A0A; padding:24px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px; }
+  .tile .caption { color:var(--muted); font-size:12px; letter-spacing:2px; text-transform:uppercase; }
+  .tile.lg { width:340px; height:340px; }
+  .tile.md { width:220px; height:220px; }
+  .tile.sm { width:140px; height:140px; }
+  .tile.avatar { width:260px; height:260px; }
+  .tile.avatar .crop { width:160px; height:160px; border-radius:50%; overflow:hidden; border:2px solid #1F1F22; background:#000; display:flex; align-items:center; justify-content:center; }
+  .tile img { max-width:100%; max-height:100%; display:block; }
+
+  .palette { display:flex; gap:0; border:1px solid var(--border); }
+  .swatch { padding:24px; min-width:140px; }
+  .swatch .name { font-size:11px; letter-spacing:2px; text-transform:uppercase; }
+  .swatch .hex  { font-family: ui-monospace, Menlo, monospace; font-size:12px; margin-top:4px; }
+
+  .lockup { background:#0A0A0A; border:1px solid var(--border); padding:24px; }
+  .lockup img { display:block; width:100%; height:auto; }
+  footer { padding:24px 64px; color:var(--muted); font-size:12px; }
+  code { font-family: ui-monospace, Menlo, monospace; color:var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">XERANT · BRAND SHEET</div>
+  <h1>Agent Lattice — the official mark.</h1>
+  <p>Four outline nodes, an amber X, and a central amber orchestrator. Shorthand for: sandboxed agents, coordinated by a core.</p>
+</header>
+
+<section>
+  <div class="label">Twitter / X Header · 1500 × 500</div>
+  <h2>Cover image</h2>
+  <div class="cover-frame"><img src="social/twitter-cover.png" alt="Xerant Twitter cover"/></div>
+  <p style="color:var(--muted);margin-top:16px;font-size:13px;">
+    File: <code>social/twitter-cover.png</code> &nbsp;·&nbsp;
+    Retina: <code>social/twitter-cover@2x.png</code> (3000 × 1000) &nbsp;·&nbsp;
+    Source: <code>social/twitter-cover.svg</code>
+  </p>
+</section>
+
+<section>
+  <div class="label">Mark · sized</div>
+  <h2>The symbol</h2>
+  <div class="row">
+    <div class="tile lg"><img src="png/mark-1024.png" alt="mark 1024"/><div class="caption">1024 · on black</div></div>
+    <div class="tile md"><img src="png/mark-512.png" alt="mark 512"/><div class="caption">512</div></div>
+    <div class="tile sm"><img src="png/mark-256.png" alt="mark 256"/><div class="caption">256</div></div>
+    <div class="tile sm"><img src="png/mark-128.png" alt="mark 128"/><div class="caption">128</div></div>
+    <div class="tile lg" style="background:#F5F5F5;"><img src="png/mark-onlight-1024.png" alt="mark on light"/><div class="caption" style="color:#5A5A5E">on light</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="label">Lockups</div>
+  <h2>Mark + wordmark</h2>
+  <div class="lockup"><img src="png/lockup-horizontal-1600.png" alt="horizontal lockup"/></div>
+  <div style="height:24px"></div>
+  <div class="row">
+    <div class="lockup" style="width:360px"><img src="png/lockup-stacked-1200.png" alt="stacked lockup"/></div>
+    <div class="lockup" style="flex:1"><img src="png/wordmark-1600.png" alt="wordmark only"/></div>
+  </div>
+</section>
+
+<section>
+  <div class="label">Avatars · Twitter/X, GitHub</div>
+  <h2>Avatar (circle-safe)</h2>
+  <div class="row">
+    <div class="tile avatar">
+      <div class="crop"><img src="png/avatar-400.png" alt="avatar 400"/></div>
+      <div class="caption">400 · circle crop</div>
+    </div>
+    <div class="tile md"><img src="png/avatar-512.png" alt="avatar 512"/><div class="caption">512 · raw</div></div>
+    <div class="tile md"><img src="png/avatar-1024.png" alt="avatar 1024"/><div class="caption">1024 · raw</div></div>
+    <div class="tile sm"><img src="png/favicon-180.png" alt="apple touch"/><div class="caption">180 · apple</div></div>
+    <div class="tile sm"><img src="png/favicon-64.png" alt="favicon 64"/><div class="caption">64 · favicon</div></div>
+    <div class="tile sm"><img src="png/favicon-32.png" alt="favicon 32"/><div class="caption">32 · favicon</div></div>
+  </div>
+</section>
+
+<section>
+  <div class="label">Palette</div>
+  <h2>Color tokens (matches existing landing page)</h2>
+  <div class="palette">
+    <div class="swatch" style="background:#000000;color:#F5F5F5;border-right:1px solid #1F1F22"><div class="name">BG</div><div class="hex">#000000</div></div>
+    <div class="swatch" style="background:#0A0A0A;color:#F5F5F5;border-right:1px solid #1F1F22"><div class="name">SURFACE 1</div><div class="hex">#0A0A0A</div></div>
+    <div class="swatch" style="background:#17171A;color:#F5F5F5;border-right:1px solid #1F1F22"><div class="name">SURFACE 3</div><div class="hex">#17171A</div></div>
+    <div class="swatch" style="background:#F5F5F5;color:#000000;border-right:1px solid #1F1F22"><div class="name">FG</div><div class="hex">#F5F5F5</div></div>
+    <div class="swatch" style="background:#FFB800;color:#000000"><div class="name">ACCENT</div><div class="hex">#FFB800</div></div>
+  </div>
+</section>
+
+<footer>
+  Everything lives under <code>marketing/brand/</code>. SVGs are the source of truth; PNGs re-export with <code>rsvg-convert</code>.
+</footer>
+
+</body>
+</html>
