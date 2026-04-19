@@ -256,6 +256,29 @@ class _DefaultModelFactory:
         )
 
 
+def _to_plain(value: Any) -> Any:
+    """Recursively convert protobuf ``MapComposite`` / ``RepeatedComposite``
+    values into plain Python dicts / lists / scalars.
+
+    The google-generativeai response objects use protobuf containers that
+    aren't deep-copyable, which breaks ``dataclasses.asdict`` downstream.
+    """
+    # protobuf Map/Struct -> dict; Repeated -> list.
+    if hasattr(value, "items") and not isinstance(value, dict):
+        return {str(k): _to_plain(v) for k, v in value.items()}
+    if isinstance(value, dict):
+        return {str(k): _to_plain(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_to_plain(v) for v in value]
+    if hasattr(value, "__iter__") and not isinstance(value, (str, bytes, bytearray)):
+        # RepeatedComposite / ListValue / etc.
+        try:
+            return [_to_plain(v) for v in value]
+        except TypeError:
+            pass
+    return value
+
+
 def _extract_function_call(response: Any):
     """Find the first function_call part in a Gemini response, if any."""
     candidates = getattr(response, "candidates", None) or []
@@ -366,7 +389,7 @@ class GeminiRunner:
                 break
 
             tool_name = fc.name
-            tool_args = dict(fc.args) if getattr(fc, "args", None) else {}
+            tool_args = _to_plain(fc.args) if getattr(fc, "args", None) else {}
             conversation.append(
                 {
                     "role": "model",
