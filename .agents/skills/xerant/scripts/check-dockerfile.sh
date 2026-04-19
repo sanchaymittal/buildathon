@@ -93,6 +93,74 @@ else
   echo "SKIP: hadolint not installed (brew install hadolint). Advisory only."
 fi
 
+# ---------- 5. compose-specific gates (if compose file present) -----------
+COMPOSE_FILE=""
+for candidate in compose.yml compose.yaml docker-compose.yml docker-compose.yaml; do
+  if [ -f "$candidate" ]; then COMPOSE_FILE="$candidate"; break; fi
+done
+
+if [ -n "$COMPOSE_FILE" ]; then
+  section "compose: $COMPOSE_FILE"
+
+  # 5a. Sensitive bind-mounts
+  # Grep for `host_path:container_path` patterns under volumes: that match
+  # known-dangerous hosts. False positives are OK here — we'd rather warn.
+  sensitive=$(grep -nE '^[[:space:]]*-[[:space:]]*["'"'"']?(/var/run/docker\.sock|/root|/etc|/var/lib|\$HOME/\.(ssh|aws|docker|gnupg)|~/\.(ssh|aws|docker|gnupg))' "$COMPOSE_FILE" 2>/dev/null || true)
+  if [ -n "$sensitive" ]; then
+    echo "FAIL: sensitive host path bind-mount detected in $COMPOSE_FILE:"
+    printf '%s\n' "$sensitive"
+    echo "  If you really need this, re-run with --force. Otherwise move the data into a named volume."
+    FAIL=1
+  else
+    echo "OK: no sensitive bind-mounts"
+  fi
+
+  # 5b. privileged: true
+  if grep -nE '^[[:space:]]*privileged:[[:space:]]*true' "$COMPOSE_FILE" >/dev/null 2>&1; then
+    echo "FAIL: service marked 'privileged: true' in $COMPOSE_FILE. Drop caps explicitly instead."
+    grep -nE '^[[:space:]]*privileged:[[:space:]]*true' "$COMPOSE_FILE"
+    FAIL=1
+  else
+    echo "OK: no privileged services"
+  fi
+
+  # 5c. Low-port exposure
+  # Matches `ports: - "0.0.0.0:22:22"`, `- "22:22"`, `- 80:80`. Extracts the
+  # host port (the numeric group immediately before the second colon) and
+  # flags it if <= 1024.
+  low_ports=$(awk '
+    /^[[:space:]]*-[[:space:]]*["'"'"']?([0-9.]+:)?[0-9]+:[0-9]+["'"'"']?[[:space:]]*$/ {
+      line = $0
+      # Strip leading list marker, quotes, whitespace.
+      sub(/^[[:space:]]*-[[:space:]]*["'"'"']?/, "", line)
+      sub(/["'"'"']?[[:space:]]*$/, "", line)
+      n = split(line, parts, ":")
+      # Host port is the second-to-last numeric field when an IP is present,
+      # otherwise the first field.
+      host_port = (n == 3) ? parts[2] : parts[1]
+      if (host_port ~ /^[0-9]+$/ && host_port+0 > 0 && host_port+0 <= 1024) {
+        printf "%d:\t%s\n", FNR, $0
+      }
+    }
+  ' "$COMPOSE_FILE" 2>/dev/null || true)
+  if [ -n "$low_ports" ]; then
+    echo "WARN: port binding <= 1024 (advisory, not blocking):"
+    printf '%s\n' "$low_ports"
+  fi
+
+  # 5d. env_file that isn't .env.example
+  bad_env_files=$(grep -nE '^[[:space:]]*env_file:[[:space:]]*["'"'"']?[^"#]*\.env(\b|[^.])' "$COMPOSE_FILE" 2>/dev/null \
+    | grep -vE '\.env\.example' || true)
+  if [ -n "$bad_env_files" ]; then
+    echo "WARN: env_file references a .env variant that is typically git-ignored:"
+    printf '%s\n' "$bad_env_files"
+    echo "  Ensure the file exists on the deploy host and isn't accidentally committed."
+  fi
+else
+  section "compose"
+  echo "SKIP: no compose file found (COMPOSE flow not in play)"
+fi
+
 # ---------- result --------------------------------------------------------
 echo
 if [ "$FAIL" -eq 0 ]; then

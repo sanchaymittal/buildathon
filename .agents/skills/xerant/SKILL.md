@@ -1,120 +1,196 @@
 ---
 name: xerant
 description: >
-  DevOps workflow that deploys a GitHub repository to the Xerant internal platform.
-  Verifies a production-ready Dockerfile locally AND in the target branch on GitHub,
-  runs a security audit (secret scan, .dockerignore, no ARG→ENV leaks, optional
-  hadolint), then calls the `xerant_deploy` MCP tool (served by
-  `@xerant/mcp-server`, which forwards to the internal DevOps API).
-  Supported environments: prod, staging, preview, dev.
+  DevOps workflow that deploys a project to the Xerant internal platform via the
+  `xerant-mcp` MCP server (which forwards to the internal FastAPI service).
+  Supports two flows:
+
+    1. COMPOSE (MVP, default) — deploy a local project directory with a Dockerfile
+       and compose.yml using `docker compose up -d` on the internal server's host.
+    2. LEGACY GITHUB — deploy a GitHub repo+branch; the server clones and builds
+       a single container.
+
+  Both flows run a security audit on the local Dockerfile + compose.yml before
+  deploy. Supported environments: prod, staging, preview, dev (mapped to
+  project_name suffix and DEPLOY_ENV env var).
   Trigger when the user says "xerant", "xerant --prod|--staging|--preview|--dev",
-  "deploy to xerant", or invokes /xerant.
+  "xerant --path ...", "xerant --repo ...", "deploy to xerant", or invokes /xerant.
 ---
 
 # xerant — Deploy to the Xerant Platform
 
-End-to-end deploy pipeline: **resolve target → Dockerfile parity check → security audit → MCP deploy → report**.
-
-Architecture:
+End-to-end deploy pipeline with two flows. The **compose** flow is the hackathon MVP and is preferred whenever a local `compose.yml` is available.
 
 ```
-OpenCode ── stdio ──▶ xerant-mcp (TS) ── HTTP ──▶ internal-server (FastAPI) ──▶ Docker
+OpenCode ── stdio ──▶ xerant-mcp ── HTTP ──▶ internal-server ──▶ Docker
 ```
 
 ## Invocation
 
 Trigger on any of:
 - `/xerant`
-- `xerant`                 — ask for environment
+- `xerant`                              — auto-detect flow
 - `xerant --prod | --staging | --preview | --dev`
+- `xerant --path <dir>`                 — force COMPOSE flow against `<dir>`
+- `xerant --repo <owner/repo> [--branch <b>]`  — force LEGACY flow
 - `deploy to xerant …`
 
-If no environment flag is given, ask the user which one.
+If no environment flag is given, ask the user.
+
+## Flow selection (when not forced)
+
+1. Is there a compose file (`compose.yml`, `compose.yaml`, `docker-compose.yml`, `docker-compose.yaml`) in the project root? → **COMPOSE** flow.
+2. Otherwise, is there a GitHub `origin` remote and a `Dockerfile`? → **LEGACY GITHUB** flow.
+3. Otherwise, offer to scaffold a compose setup (see Step 3 below) and default to COMPOSE.
 
 ## Required environment
 
-- `XERANT_API_KEY` *(optional for now)* — forwarded as `Authorization: Bearer …` by the MCP bridge. The server currently ignores it; kept for forward compatibility. Never log, echo, write to disk, or commit.
-- `XERANT_API_URL` *(optional)* — defaults to `http://localhost:8000`.
-- The internal server itself needs `GITHUB_TOKEN` server-side; the skill doesn't touch that.
-
-If the user hasn't set `XERANT_API_KEY`, proceed without prompting (server-side auth is off). Call this out in the final report so the user knows.
+- `XERANT_API_KEY` *(optional)* — forwarded as `Authorization: Bearer …`. Server currently ignores; forward-compatible. Never log, echo, or write.
+- `XERANT_API_URL` *(optional)* — default `http://localhost:8000`.
+- `GITHUB_TOKEN` is only relevant for the LEGACY flow, and it's server-side (the skill never touches it).
 
 ## Required MCP tools
 
-The skill expects these tools from `xerant-mcp` to be registered:
+### Always
 
-| Tool | Purpose |
-|------|---------|
-| `xerant_health` | pre-flight |
-| `xerant_docker_health` | pre-flight |
-| `xerant_deploy` | main deploy action |
-| `xerant_github_get_file` | fetch remote Dockerfile for parity diff |
-| `xerant_github_list_branches` | verify branch exists |
-| `xerant_list_deployments` / `xerant_get_deployment` / `xerant_deployment_logs` | post-deploy inspection |
+- `xerant_health`
 
-If any required tool is missing, stop and tell the user to register `xerant-mcp` in `opencode.json` (see `mcp-server/README.md`).
+### COMPOSE flow
 
-## Workflow
+- `xerant_compose_ping` *(pre-flight)*
+- `xerant_compose_up`, `xerant_compose_down`, `xerant_compose_status`, `xerant_compose_logs`
 
-Run sequentially. **Halt on first failure.**
+### LEGACY GITHUB flow
+
+- `xerant_docker_health` *(pre-flight)*
+- `xerant_deploy`, `xerant_get_deployment`, `xerant_deployment_logs`
+- `xerant_github_list_branches`, `xerant_github_get_file` *(for remote Dockerfile parity)*
+
+If a required tool is missing, stop and tell the user to register `xerant-mcp` in `opencode.json` (see `mcp-server/README.md`).
+
+---
+
+## COMPOSE flow
 
 ### Step 1 — Resolve target
 
-Parse the flag and map to canonical tier:
+Gather:
+- `project_path` — default to the current working directory, or the `--path` value.
+- `environment` — from the flag; ask if missing.
+- `project_name` — default `<basename(project_path)>-<environment>` if environment set, else let the server derive it.
+- `env` — any user-specified runtime env vars. Always inject `DEPLOY_ENV=<canonical>` when an environment is set.
+- `build` — default `true`. Set to `false` only if the user passes `--no-build`.
 
-| Flag | Canonical |
-|------|-----------|
-| `--prod` | `production` |
-| `--staging` | `staging` |
-| `--preview` | `preview` |
-| `--dev` | `development` |
+### Step 2 — Pre-flight
 
-Then gather:
-- `repository` — infer from `git remote get-url origin`, strip trailing `.git`, convert to `owner/repo`. Confirm with user if ambiguous.
-- `branch` — default to `git rev-parse --abbrev-ref HEAD`. If that's `HEAD` (detached) or uncommitted, ask.
-- `container_port` — default `80`. Ask if the app listens on a different port.
+1. `xerant_health` — expect `healthy`.
+2. `xerant_compose_ping` — verifies the server-side Docker daemon. Stop on failure.
 
-### Step 2 — Pre-flight the platform
+### Step 3 — Ensure project files
 
-1. Call `xerant_health`. Expect `{"status":"healthy"}`.
-2. Call `xerant_docker_health`. If the Docker daemon is down, stop and show the message — the deploy will fail without it.
+Required in `project_path`:
+- `Dockerfile` (or referenced from compose `build:`)
+- A compose file (`compose.yml` preferred)
+
+If `Dockerfile` is missing, propose a template from `templates/` as before.
+
+If no compose file exists, propose `templates/compose.yml` (single service, sensible defaults). Show the diff and ask for confirmation before writing.
+
+If `.dockerignore` is missing, copy `templates/.dockerignore` after showing it.
+
+### Step 4 — Security gates
+
+Run `scripts/check-dockerfile.sh` (existing gates: `.dockerignore`, ARG→ENV leaks, secret scan, optional hadolint).
+
+Additionally for compose:
+- Scan `compose.yml` for secrets (same patterns as `scan-secrets.sh` applied to the compose file text).
+- Flag any `volumes:` entry that bind-mounts a sensitive host path (`/var/run/docker.sock`, `/root`, `~/.ssh`, `~/.aws`, `~/.docker`, `/etc/`, `/var/lib/`). If present, warn prominently and require explicit user confirmation (or `--force`).
+- Flag any `ports:` entry that binds `0.0.0.0:<port>` to a port `<= 1024` without a clear reason.
+- Warn if any service has `privileged: true`.
+
+Halt on hard findings.
+
+### Step 5 — Deploy
+
+Call `xerant_compose_up` with:
+
+```json
+{
+  "project_path": "<abs path>",
+  "project_name": "<optional>",
+  "env": { "DEPLOY_ENV": "<canonical>", ... },
+  "build": true
+}
+```
+
+The tool returns a `DeployLocalResult`:
+
+```json
+{
+  "status": "succeeded" | "failed",
+  "project_name": "...",
+  "project_path": "...",
+  "compose_file": "compose.yml",
+  "services": [ { "service": "web", "state": "running", "ports": "0.0.0.0:8080->80/tcp", ... } ],
+  "output": "...",
+  "error": null,
+  "agents_md_excerpt": "..."
+}
+```
+
+### Step 6 — Verify & report
+
+If `status == "failed"`:
+- Pull `xerant_compose_logs` with `tail=200` and show the output verbatim.
+- Print the `error` field.
+- Suggest fixes based on the error (e.g., missing image, port collision).
+
+If `status == "succeeded"`:
+- List services with their `state` and `ports`.
+- If any service is `running`, extract the host port from `ports` and print a curl-friendly URL (`http://localhost:<port>`).
+- If `agents_md_excerpt` is present, show it so the user sees repo-provided notes.
+
+---
+
+## LEGACY GITHUB flow
+
+This is the existing flow, preserved for repos where the internal server must clone from GitHub and build a single container itself.
+
+### Step 1 — Resolve target
+
+- `repository` — from `git remote get-url origin` or `--repo`. Convert to `owner/repo`.
+- `branch` — from `git rev-parse --abbrev-ref HEAD` or `--branch`. Refuse on detached HEAD.
+- `container_port` — default `80`. Ask if unusual.
+- `environment` — from flag; ask if missing.
+
+### Step 2 — Pre-flight
+
+1. `xerant_health` → `healthy`.
+2. `xerant_docker_health` → `healthy`. Stop if the daemon is unreachable.
 
 ### Step 3 — Ensure local Dockerfile exists
 
-1. If `./Dockerfile` missing, detect project type:
-   - `package.json` with `"next"` dep → `templates/Dockerfile.nextjs`
-   - `package.json` without Next → `templates/Dockerfile.node`
-   - `requirements.txt` / `pyproject.toml` → propose a Python template (not bundled; draft inline)
-   - else → `templates/Dockerfile.generic` (marked TODO for the user)
-2. Show the proposed Dockerfile as a diff. Ask for confirmation before writing.
-3. If `./.dockerignore` missing, copy `templates/.dockerignore`. If present, verify it covers: `.env`, `.git`, `node_modules`, `*.pem`, `*.key`, `id_rsa`. Propose additions if any are missing.
+Same as COMPOSE Step 3, but compose file is not required.
 
 ### Step 4 — Remote Dockerfile parity
 
-Critical: **the internal server builds from GitHub, not the local checkout.** So the Dockerfile that matters is the one committed on the target branch.
+Because the server builds from GitHub, not from the local checkout:
 
 1. Call `xerant_github_get_file` with `{owner, repo, path: "Dockerfile", ref: branch}`.
-2. Compare `decoded_content` against the local file:
+2. Diff against local:
    - **Identical** → proceed.
-   - **Remote missing** → tell the user they must commit and push the Dockerfile to `<branch>` before this deploy can work. Stop.
-   - **Remote differs** → show a concise diff; ask whether to push local or to deploy what's on the remote. Stop and wait for a decision.
+   - **Remote missing** → stop; instruct user to push the Dockerfile.
+   - **Remote differs** → show the diff; ask whether to push local or deploy remote as-is.
 
-If the git working tree is dirty (`git status --porcelain` non-empty) and includes `Dockerfile`, warn explicitly: "Local Dockerfile is uncommitted; the server will use the committed version."
+If `git status --porcelain` includes `Dockerfile`, warn: local is uncommitted.
 
 ### Step 5 — Security gates
 
-Run `scripts/check-dockerfile.sh` from the skill directory. It performs:
+`scripts/check-dockerfile.sh` — same gates as COMPOSE. No compose-file-specific checks.
 
-1. **`.dockerignore` coverage** — required entries present.
-2. **ARG → ENV leak check** — flags `ARG X` + `ENV X=${X}`.
-3. **Secret scan** — via `scripts/scan-secrets.sh`. Patterns: AWS access keys (`AKIA…`/`ASIA…`), GitHub PATs (`ghp_…`, `github_pat_…`), Slack tokens, Google API keys, OpenAI-style, private-key headers, and heuristic `API_KEY=/SECRET=/TOKEN=/PASSWORD=` assignments with literal (non-placeholder) values.
-4. **hadolint** — optional; run if `hadolint` is on `PATH`.
+### Step 6 — Deploy
 
-Any hard finding → stop. Print findings verbatim and propose fixes. Do **not** bypass without an explicit user `--force` override, which must be logged in the final report.
-
-### Step 6 — Deploy via MCP
-
-Call the `xerant_deploy` tool with:
+Call `xerant_deploy`:
 
 ```json
 {
@@ -122,48 +198,39 @@ Call the `xerant_deploy` tool with:
   "branch": "<branch>",
   "environment": "<prod|staging|preview|dev>",
   "container_port": <port>,
-  "env": { /* any user-provided runtime env vars */ },
-  "build_args": { /* any user-provided build args */ }
+  "env": { /* user-provided */ },
+  "build_args": { /* user-provided */ }
 }
 ```
 
-The MCP bridge injects `DEPLOY_ENV=<canonical>` into the env dict and derives `name = <repo>-<canonical>` unless the user supplied a `name`.
-
-The server response shape (`Deployment` model):
-- `id`, `status`, `url`, `container_id`, `container_name`, `host_port`, `container_port`, `image`, `created_at`, `logs_tail`, `env`, `labels`.
+The MCP bridge injects `DEPLOY_ENV` and derives `name = <repo>-<environment>`.
 
 ### Step 7 — Verify
 
-1. Immediately call `xerant_get_deployment` with the returned `id`. Report `status` (`building|running|stopped|failed`).
-2. If `status == "failed"`, pull `xerant_deployment_logs` with `tail=200` and show them.
-3. If `status == "running"`, print the `url` and commit SHA (`git rev-parse --short HEAD`).
+Poll `xerant_get_deployment` until `status` is `running` or `failed`. On failure, pull `xerant_deployment_logs` with `tail=200`.
 
-### Step 8 — Report
+---
 
-Print a compact summary:
+## Report format (both flows)
 
 ```
-Deployment        <id>
-Repository        <owner/repo>@<branch> (commit <sha>)
+Flow              <compose|legacy>
+Project           <compose: project_name @ path | legacy: owner/repo@branch (sha)>
 Environment       <canonical>
-Image             <image tag>
-Container         <name> (id <short>)
-URL               <url>
-Status            <status>
+Status            <succeeded|running|failed>
+Services          (compose) list of name → state → ports
+URL               (if running)
 Auth              XERANT_API_KEY [set|unset]
 ```
 
-On any failure, print:
-- The failing step
-- The underlying error (exit code or API error body)
-- Suggested next step (e.g. "push Dockerfile to main", "check Docker daemon")
+On failure: failing step + underlying error + suggested next step.
 
 ## Boundaries
 
 - **Never** echo `XERANT_API_KEY`.
 - **Never** skip a failed security gate without an explicit `--force` that gets logged.
-- **Never** modify local files (Dockerfile, .dockerignore) without showing the change first.
-- **Never** call `xerant_remove_deployment` or any destructive tool unprompted.
+- **Never** modify local files (Dockerfile, compose.yml, .dockerignore) without showing the change first.
+- **Never** call destructive tools (`xerant_remove_deployment`, `xerant_compose_down`) unprompted.
 - Don't combine with the `caveman` skill — deploy output must stay readable.
 
 ## Files in this skill
@@ -172,24 +239,31 @@ On any failure, print:
 .agents/skills/xerant/
 ├── SKILL.md                   # this file
 ├── scripts/
-│   ├── check-dockerfile.sh    # security gate runner
-│   ├── scan-secrets.sh        # secret-pattern scanner
-│   └── deploy.sh              # legacy CLI fallback (only used if MCP unavailable)
+│   ├── check-dockerfile.sh
+│   ├── scan-secrets.sh
+│   └── deploy.sh              # CLI fallback when MCP unavailable
 └── templates/
     ├── Dockerfile.nextjs
     ├── Dockerfile.node
     ├── Dockerfile.generic
+    ├── compose.yml            # single-service starter for the MVP flow
     └── .dockerignore
 ```
 
-## MCP tool catalog (for reference)
+## MCP tool catalog
 
-Full tool list exposed by `xerant-mcp`:
+Platform:
+- `xerant_health`, `xerant_docker_health`, `xerant_compose_ping`
 
-- `xerant_health`, `xerant_docker_health`
+Compose (MVP):
+- `xerant_compose_up`, `xerant_compose_down`, `xerant_compose_status`, `xerant_compose_logs`
+
+Legacy GitHub:
 - `xerant_deploy`, `xerant_list_deployments`, `xerant_get_deployment`, `xerant_deployment_logs`
 - `xerant_stop_deployment`, `xerant_start_deployment`, `xerant_restart_deployment`, `xerant_redeploy`, `xerant_remove_deployment`
+
+Containers / GitHub:
 - `xerant_list_containers`, `xerant_get_container`, `xerant_container_logs`
 - `xerant_github_get_repo`, `xerant_github_list_branches`, `xerant_github_get_file`
 
-Use these for follow-up operations (tail logs, restart, redeploy, etc.) — they do not require re-running the skill.
+Use these for follow-up ops (tail logs, restart, redeploy, etc.) without re-running the skill.
