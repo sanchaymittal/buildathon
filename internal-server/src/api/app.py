@@ -1,18 +1,32 @@
 """
 FastAPI Application - Main API entry point.
+
+The compose router (``/compose/*``) is always registered. The legacy routers
+(``/deployments``, ``/containers``, ``/github``) register conditionally
+depending on whether the optional ``docker`` / ``agents`` / ``PyGithub``
+packages are installed. This keeps the server bootable in a minimal
+hackathon environment while preserving the legacy surface when its
+dependencies are present.
 """
 
 import logging
 from contextlib import asynccontextmanager
-from typing import Any
 
 from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routes import deployments, containers, github
-from ..docker_svc.service import DockerService
-from ..docker_svc.base import DockerDaemonError
+from . import routes
+from ..docker_svc.base import DockerDaemonError, DockerServiceError
+from ..docker_svc.compose_service import ComposeDeployService
+
+try:  # pragma: no cover - depends on optional deps
+    from ..docker_svc.service import DockerService  # type: ignore
+
+    _LEGACY_DOCKER_AVAILABLE = True
+except Exception:  # pragma: no cover
+    DockerService = None  # type: ignore[assignment]
+    _LEGACY_DOCKER_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +35,23 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
     logger.info("Starting Agentic DevOps API")
+    if not routes._LEGACY_DOCKER_ROUTES:
+        logger.info(
+            "Legacy Docker routes disabled (install 'docker' + 'openai-agents' to enable)"
+        )
+    if not routes._GITHUB_ROUTES:
+        logger.info("GitHub routes disabled (install 'PyGithub' to enable)")
     yield
     logger.info("Shutting down Agentic DevOps API")
 
 
 app = FastAPI(
     title="Agentic DevOps API",
-    description="AI-powered Docker deployment platform",
-    version="0.2.0",
+    description=(
+        "AI-powered Docker deployment platform. MVP flow: POST a local repo "
+        "path to /compose/up to run it on the host Docker daemon."
+    ),
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -40,25 +63,57 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(deployments.router)
-app.include_router(containers.router)
-app.include_router(github.router)
+# Always register the compose router.
+app.include_router(routes.compose.router)
+
+# Register legacy routers only when their underlying deps loaded.
+if routes._LEGACY_DOCKER_ROUTES:  # pragma: no branch
+    app.include_router(routes.deployments.router)
+    app.include_router(routes.containers.router)
+
+if routes._GITHUB_ROUTES:  # pragma: no branch
+    app.include_router(routes.github_routes.router)
 
 
 @app.get("/health", tags=["health"])
 def health_check() -> JSONResponse:
-    """Health check endpoint."""
+    """Liveness check."""
     return JSONResponse(
         status_code=status.HTTP_200_OK,
         content={"status": "healthy", "service": "agentic-devops"},
     )
 
 
+@app.get("/health/compose", tags=["health"])
+def compose_health_check() -> JSONResponse:
+    """Check that the local Docker daemon is reachable via the compose flow."""
+    service = ComposeDeployService(skip_verification=True)
+    try:
+        service.ping()
+    except DockerServiceError as exc:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "unhealthy", "docker": str(exc)},
+        )
+    return JSONResponse(
+        status_code=status.HTTP_200_OK,
+        content={"status": "healthy", "docker": "connected"},
+    )
+
+
 @app.get("/health/docker", tags=["health"])
 def docker_health_check() -> JSONResponse:
-    """Check Docker daemon health."""
+    """Legacy Docker daemon health check (via docker-py)."""
+    if not _LEGACY_DOCKER_AVAILABLE:
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={
+                "status": "unhealthy",
+                "docker": "legacy flow unavailable; use /health/compose",
+            },
+        )
     try:
-        docker = DockerService()
+        docker = DockerService()  # type: ignore[misc]
         docker.client.ping()
         return JSONResponse(
             status_code=status.HTTP_200_OK,
@@ -74,8 +129,9 @@ def docker_health_check() -> JSONResponse:
 def run(host: str = "0.0.0.0", port: int = 8000, reload: bool = False) -> None:
     """Run the API server."""
     import uvicorn
+
     uvicorn.run(
-        "agentic_devops.src.api.app:app",
+        "src.api.app:app",
         host=host,
         port=port,
         reload=reload,
