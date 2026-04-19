@@ -1,5 +1,15 @@
 # Xerant — End-to-end quickstart
 
+> **Just want to use the skill in your own project?** Skip this and run:
+>
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh | bash
+> ```
+>
+> Details: [`.agents/skills/xerant/README.md`](.agents/skills/xerant/README.md) · Latest release: [v0.1.0](https://github.com/sanchaymittal/buildathon/releases/latest) · npm: [`xerant-mcp-server`](https://www.npmjs.com/package/xerant-mcp-server).
+>
+> This document is for **developers of this repo** who want to run the whole stack locally (internal-server + MCP bridge + skill) end-to-end.
+
 Three moving parts:
 
 ```
@@ -9,9 +19,9 @@ Three moving parts:
 └─────────────┘            └─────────────┘          └─────────────────┘                └──────────┘
 ```
 
-- **OpenCode skill** lives at `.agents/skills/xerant/`. Triggered by `/xerant`, `xerant --prod`, etc.
-- **MCP server** (`mcp-server/`, TypeScript) is spawned by OpenCode over stdio and forwards calls to the internal API.
-- **Internal server** (`internal-server/`, FastAPI) talks to the Docker daemon to build images from GitHub repos and run containers.
+- **OpenCode skill** lives at `.agents/skills/xerant/`. Triggered by `/xerant`, `xerant --prod`, etc. See its [README](.agents/skills/xerant/README.md) for the user-facing story.
+- **MCP server** (`mcp-server/`, TypeScript). Published to npm as [`xerant-mcp-server`](https://www.npmjs.com/package/xerant-mcp-server). Spawned by OpenCode over stdio; forwards calls to the internal API.
+- **Internal server** (`internal-server/`, FastAPI). Talks to the Docker daemon. Supports two deploy flows: local `docker compose` (MVP) and GitHub-clone single-container (legacy).
 
 ## 1. Start the internal server
 
@@ -61,7 +71,21 @@ Then open:
 - Frontend: http://localhost:3000
 - Backend: http://localhost:8000
 
-## 2. Build the MCP bridge
+## 2. MCP bridge
+
+You have three options — pick whichever fits your dev loop:
+
+### Option A: Use the npm package (easiest)
+
+No build needed. `opencode.json` just references `npx`:
+
+```json
+"command": ["npx", "-y", "xerant-mcp-server@latest"]
+```
+
+See [npmjs.com/package/xerant-mcp-server](https://www.npmjs.com/package/xerant-mcp-server).
+
+### Option B: Rebuild the bundled binary from local source
 
 ```bash
 cd mcp-server
@@ -69,11 +93,29 @@ npm install
 npm run bundle      # writes single-file bundle to .agents/skills/xerant/bin/xerant-mcp.mjs
 ```
 
-For debugging / dev iteration you can also run `npm run build` (produces `mcp-server/dist/`) or `npm run dev` (runs from source via tsx). The committed `opencode.json` points at the bundle, so drop-in installs into other projects work without a build step.
+The committed `opencode.json` points at this bundle. Drop-in installs into other projects also use it.
+
+### Option C: Watch-mode from TypeScript source
+
+```bash
+cd mcp-server
+npm install
+npm run dev         # tsx, hot-reloads on source changes
+```
+
+Point `opencode.json` command at `["npx", "-y", "tsx", "./mcp-server/src/index.ts"]`.
+
+### Publishing a new version
+
+```bash
+cd mcp-server
+npm version patch   # or minor / major
+npm publish         # prompts for 2FA OTP
+```
 
 ## 3. Register the MCP server with OpenCode
 
-The workspace already ships an `opencode.json` pointing at `./.agents/skills/xerant/bin/xerant-mcp.mjs`. For drop-in into another project, run `.agents/skills/xerant/install.sh` from that project's root — see the skill's `SKILL.md` for details.
+The workspace already ships an `opencode.json` pointing at `./.agents/skills/xerant/bin/xerant-mcp.mjs` (the committed bundle). For drop-in into another project, run `.agents/skills/xerant/install.sh` from that project's root — see the skill's [README](.agents/skills/xerant/README.md) for details.
 
 Optional env vars you may want to export in the shell that launches `opencode`:
 
@@ -96,21 +138,32 @@ From a project you want to deploy:
 /xerant --prod
 ```
 
-The skill will:
+The skill auto-picks a flow based on the project contents.
 
-1. Resolve target repo/branch/env.
-2. Call `xerant_health` + `xerant_docker_health` via MCP.
-3. Ensure a local `Dockerfile` exists (proposing a template if not).
-4. Diff the local Dockerfile against `Dockerfile` on the target branch in GitHub (via `xerant_github_get_file`).
-5. Run security gates (`check-dockerfile.sh`): `.dockerignore`, ARG→ENV leaks, secret scan, hadolint.
-6. Call `xerant_deploy` with `{repository, branch, environment, container_port, env, build_args}`.
-7. Poll `xerant_get_deployment` and `xerant_deployment_logs` until running or failed.
-8. Print a compact deploy report with URL, container id, and status.
+### Compose flow (MVP, primary — triggered when a `compose.yml` exists)
 
-Follow-up actions (no skill required, just ask OpenCode to use the tool):
+1. Resolve target path + environment tier.
+2. `xerant_health` + `xerant_compose_ping` pre-flight.
+3. Ensure `Dockerfile` + `compose.yml` + `.dockerignore` (offers templates if missing).
+4. Security gates: `.dockerignore` coverage, ARG→ENV leaks, secret scan, hadolint, plus compose-specific checks (sensitive bind-mounts, privileged, low-port bindings, `.env` env_file).
+5. Call `xerant_compose_up` with `{project_path, env: {DEPLOY_ENV: <tier>}}`.
+6. Poll `xerant_compose_status`; print service URLs + state.
+
+### Legacy GitHub flow (fallback — no compose file, has `origin` + `Dockerfile`)
+
+1. Resolve repo/branch from `git remote`.
+2. `xerant_health` + `xerant_docker_health` pre-flight.
+3. Ensure local `Dockerfile` + `.dockerignore`.
+4. Diff local Dockerfile against the target branch on GitHub via `xerant_github_get_file`.
+5. Security gates.
+6. `xerant_deploy` with `{repository, branch, environment, container_port, env, build_args}`.
+7. Poll `xerant_get_deployment` + `xerant_deployment_logs` until running or failed.
+
+### Follow-up ops (no skill required)
 
 ```
 use xerant_deployment_logs  id=<id>  tail=200
+use xerant_compose_status   project_path=.
 use xerant_restart_deployment  id=<id>
 use xerant_redeploy  id=<id>
 ```

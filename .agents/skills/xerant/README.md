@@ -2,41 +2,77 @@
 
 Deploy any project to the Xerant internal DevOps platform from OpenCode, in one invocation.
 
+[![npm](https://img.shields.io/npm/v/xerant-mcp-server.svg?label=xerant-mcp-server)](https://www.npmjs.com/package/xerant-mcp-server)
+[![release](https://img.shields.io/github/v/release/sanchaymittal/buildathon.svg)](https://github.com/sanchaymittal/buildathon/releases/latest)
+
 ```
-OpenCode ── stdio ──▶ xerant-mcp (bundled) ── HTTP ──▶ internal-server ──▶ Docker
+OpenCode ── stdio ──▶ xerant-mcp ── HTTP ──▶ internal-server ──▶ Docker
 ```
 
-This folder is the **entire skill** — workflow spec, installer, pre-built MCP bridge, security scripts, and Dockerfile / compose templates.
+This folder is the **entire skill** — workflow spec, installer, pre-built MCP bridge, security scripts, and Dockerfile / compose templates. Fully self-contained (~750 KB including the MCP binary). Drops into any project with one command.
 
 ---
 
-## Install (one line)
+## Install
+
+Pick the path that fits. All three land in the same place.
+
+### 1. `curl | bash` from GitHub (recommended — live today)
 
 From the root of the project you want to deploy:
 
 ```bash
-curl -fsSL https://xerant.cloud/install | sh
+curl -fsSL https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh | bash
 ```
 
-That's the whole install. The script downloads the skill into `.agents/skills/xerant/`, wires `./opencode.json`, and self-tests the 22 MCP tools. Then restart OpenCode and run:
+That's it. The script downloads the skill into `./.agents/skills/xerant/`, wires `./opencode.json`, and self-tests the 22 MCP tools. Restart OpenCode and run:
 
 ```
 /xerant --prod
 ```
 
-### One-line alternatives
-
-If you're somewhere `xerant.cloud` isn't reachable, or want a pinned ref:
+### 2. Tarball from the GitHub release (pinned, live today)
 
 ```bash
-# Direct from GitHub (always current main)
-curl -fsSL https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh | bash
-
-# Pin to a specific ref / branch / tag / SHA
-curl -fsSL https://xerant.cloud/install | XERANT_REF=v0.2.0 sh
+curl -fsSL https://github.com/sanchaymittal/buildathon/releases/download/v0.1.0/xerant-skill-v0.1.0.tar.gz | tar -xz
+bash .agents/skills/xerant/install.sh
 ```
 
-### Install options (env vars)
+Latest release: **[v0.1.0](https://github.com/sanchaymittal/buildathon/releases/latest)**. Use this when you want an immutable install tied to a specific version.
+
+### 3. `xerant.cloud/install` (pending marketing-site redirect)
+
+```bash
+curl -fsSL https://xerant.cloud/install | sh
+```
+
+Works once the redirect lands on `xerant.cloud`. Until then, use path 1. Maintainer note below on how to wire the redirect.
+
+### 4. MCP only, no skill files (for advanced users)
+
+If you already have a workflow and just want the MCP server wired into OpenCode, skip the skill entirely and add this to your `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "xerant": {
+      "type": "local",
+      "command": ["npx", "-y", "xerant-mcp-server@latest"],
+      "environment": {
+        "XERANT_API_URL": "{env:XERANT_API_URL}",
+        "XERANT_API_KEY": "{env:XERANT_API_KEY}"
+      },
+      "enabled": true,
+      "timeout": 15000
+    }
+  }
+}
+```
+
+npm: [`xerant-mcp-server`](https://www.npmjs.com/package/xerant-mcp-server). Updates every time the package publishes a new version.
+
+### Install options (env vars for the installer)
 
 | Var | Default | Purpose |
 |---|---|---|
@@ -45,16 +81,22 @@ curl -fsSL https://xerant.cloud/install | XERANT_REF=v0.2.0 sh
 | `XERANT_TARGET` | `.agents/skills/xerant` | Destination directory inside your project |
 | `XERANT_FORCE` | `0` | Set `1` to overwrite an existing skill dir |
 
-### Offline / air-gapped install
+Pin a version:
 
-The skill folder is fully self-contained (~750 KB including the bundled MCP). Copy it in by hand:
+```bash
+curl -fsSL .../install-remote.sh | XERANT_REF=v0.1.0 bash
+```
+
+### 5. Offline / air-gapped
+
+The skill folder works without network after install. Copy it in by hand:
 
 ```bash
 cp -r /path/to/xerant .agents/skills/xerant
 bash .agents/skills/xerant/install.sh
 ```
 
-No network calls are made after install.
+The bundled `bin/xerant-mcp.mjs` (~720 KB) is used instead of npm.
 
 ---
 
@@ -62,44 +104,15 @@ No network calls are made after install.
 
 | Requirement | Why |
 |---|---|
-| **Node.js ≥ 20** | To run the bundled MCP server (`install.sh` enforces this). Check with `node -v`. |
-| **A reachable internal-server** | The MCP server forwards deploy calls to the FastAPI service. Default: `http://localhost:8000`. Set `XERANT_API_URL` to override. |
-| **Docker daemon** (on the internal-server host) | Needed only by the internal-server, not by this skill. |
+| **Node.js ≥ 20** | Runs the bundled MCP or the `npx xerant-mcp-server` process. Installer enforces this. |
+| **A reachable internal-server** | The MCP bridge forwards calls to the FastAPI service. Default `http://localhost:8000`. Override with `XERANT_API_URL`. |
+| **Docker daemon** (on the internal-server host) | Only the internal-server talks to Docker. The skill itself doesn't. |
 
-The skill itself does not need Docker, Python, or any build tools on the consumer side.
+No Python, Docker, or build tools required on the consumer side.
 
 ---
 
-## Install
-
-From the root of the project you want to deploy:
-
-```bash
-# option A: copy the folder in (assumes you've cloned buildathon nearby)
-cp -r ~/github/buildathon/.agents/skills/xerant .agents/skills/xerant
-
-# option B: fetch just the skill as a tarball (when hosted)
-# curl -fsSL https://example.com/xerant-skill.tar.gz | tar -xz -C .agents/skills/
-
-# Wire it into OpenCode
-bash .agents/skills/xerant/install.sh
-```
-
-The installer:
-
-1. Verifies `bin/xerant-mcp.mjs` exists and is executable.
-2. Verifies Node.js ≥ 20.
-3. Computes a project-relative path to the MCP binary.
-4. Creates or merges an `mcp.xerant` block into `./opencode.json`. If the file exists, your other keys (`plugin`, `tools`, other MCP servers, etc.) are preserved. A timestamped backup is written as `opencode.json.bak.<epoch>` before any edit.
-5. Runs a stdio self-test against the bundle to confirm the 22 MCP tools load.
-
-It **does not**:
-
-- Install or modify Node.js.
-- Start the internal-server.
-- Write any secrets. `XERANT_API_KEY` / `XERANT_API_URL` stay in your shell env.
-
-### Configuration
+## Configuration
 
 After install, optionally export:
 
@@ -135,6 +148,8 @@ Both are read lazily per MCP call. Nothing is persisted to disk by the skill.
 
 The `{env:…}` substitution is an OpenCode feature — at spawn time it reads your shell env and injects the values into the MCP process.
 
+If you'd rather use the npm-published server than the committed bundle, swap `command` to `["npx", "-y", "xerant-mcp-server@latest"]`. Both work identically.
+
 ---
 
 ## Use
@@ -152,7 +167,7 @@ This is the **MVP / hackathon-preferred** path. The internal-server runs `docker
 or explicitly:
 
 ```
-xerant --path .        # implicitly --dev unless env flag given
+xerant --path .          # implicitly --dev unless env flag given
 xerant --path . --staging
 ```
 
@@ -188,7 +203,7 @@ Before any deploy:
 
 - `.dockerignore` exists and covers `.env`, `.git`, `node_modules`, `*.pem`, `*.key`, `id_rsa`.
 - No `ARG X` promoted to `ENV X=${X}` (classic secret leak).
-- No literal secrets in Dockerfile or repo (AWS/GitHub/Slack/Google/OpenAI keys, private-key headers, heuristic `SECRET=`/`PASSWORD=` assignments). Placeholders like `EXAMPLE`, `changeme`, `<your-key>`, `${VAR}` are ignored.
+- No literal secrets in Dockerfile or repo (AWS / GitHub / Slack / Google / OpenAI keys, private-key headers, heuristic `SECRET=` / `PASSWORD=` assignments). Placeholders like `EXAMPLE`, `changeme`, `<your-key>`, `${VAR}` are ignored.
 - `hadolint` if installed (advisory).
 
 Compose-specific (when a compose file is present):
@@ -198,7 +213,7 @@ Compose-specific (when a compose file is present):
 - **Warn** on host port ≤ 1024 bindings.
 - **Warn** on `env_file` referencing `.env` variants (usually git-ignored, must exist on host).
 
-A hard finding stops the pipeline. The skill will show the exact offending line and suggest a fix. Bypassing requires explicit `--force`, which gets logged in the final report.
+A hard finding stops the pipeline with the exact offending line and a fix suggestion. Bypassing requires explicit `--force`, which gets logged in the final report.
 
 ### Environment tiers
 
@@ -228,7 +243,7 @@ Available to the agent after install, not just via the skill:
 | `xerant_list_containers` / `_get_container` / `_container_logs` | raw container inspection |
 | `xerant_github_get_repo` / `_list_branches` / `_get_file` | repo metadata + remote Dockerfile fetch |
 
-You can invoke them directly in a prompt without rerunning the skill:
+Invoke directly in a prompt without rerunning the skill:
 
 > "Use `xerant_deployment_logs` with id=abc123 tail=300 to show why my last deploy failed."
 
@@ -261,9 +276,9 @@ opencode mcp list
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| `curl https://xerant.cloud/install` → 404 | Marketing site redirect not deployed yet | Use the raw GitHub URL instead: `curl -fsSL https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh \| bash` |
-| `install-remote.sh` says "Destination already exists" | Previous install present | Re-run with `XERANT_FORCE=1`: `curl ... \| XERANT_FORCE=1 sh` |
-| Extract failed ("repo may not contain") | Bad `XERANT_REF` | Verify the branch/tag/sha exists on the source repo |
+| `curl https://xerant.cloud/install` → 404 | Marketing site redirect not deployed yet | Use the raw GitHub URL (path 1) or the release tarball (path 2) |
+| `install-remote.sh` says "Destination already exists" | Previous install present | Re-run with `XERANT_FORCE=1` |
+| Extract failed ("repo may not contain") | Bad `XERANT_REF` | Verify the branch / tag / SHA exists on the source repo |
 | `install.sh` says "node is not on PATH" | Node not installed | Install Node ≥ 20 from <https://nodejs.org> |
 | `install.sh` says "Node X is too old" | Node < 20 | Upgrade Node; `nvm install 20` if using nvm |
 | `install.sh` says "Bundled MCP binary missing" | Copied only part of the folder | Re-copy the whole `.agents/skills/xerant/` tree, including `bin/` |
@@ -286,7 +301,7 @@ xerant/
 ├── install-remote.sh          # curl | sh entry point (fetches tree from GitHub)
 ├── install.sh                 # local installer (merges opencode.json)
 ├── bin/
-│   └── xerant-mcp.mjs         # pre-bundled MCP server (~720KB, Node >= 20, 22 tools)
+│   └── xerant-mcp.mjs         # pre-bundled MCP server (~720 kB, Node >= 20, 22 tools)
 ├── scripts/
 │   ├── check-dockerfile.sh    # security-gate runner (Dockerfile + compose)
 │   ├── scan-secrets.sh        # secret-pattern scanner
@@ -311,16 +326,29 @@ npm install        # once
 npm run bundle     # writes .agents/skills/xerant/bin/xerant-mcp.mjs
 ```
 
-Commit the resulting `bin/xerant-mcp.mjs` with your source change.
+Commit the resulting `bin/xerant-mcp.mjs` along with your source change.
+
+To publish a new version of `xerant-mcp-server` to npm:
+
+```bash
+cd mcp-server
+npm version patch           # or minor / major
+npm publish                 # will prompt for 2FA OTP
+```
 
 ---
 
-## Security posture
+## Distribution status
 
-- `XERANT_API_KEY` is never written to disk, echoed, or passed on argv. The MCP process reads it from env at startup and forwards it only as an HTTP `Authorization` header.
-- `install.sh` takes a timestamped backup of `opencode.json` before editing.
-- The bundled MCP is an ESM file, shebang-prefixed, no postinstall scripts. Inspect it before trusting with: `head -20 bin/xerant-mcp.mjs`.
-- All security gates run locally on the consumer's machine before any network call to the internal-server.
+| Artifact | Where | Version | Status |
+|---|---|---|---|
+| Skill folder | this repo, `.agents/skills/xerant/` | tracks `main` | **live** |
+| Release tarball | [GitHub Releases](https://github.com/sanchaymittal/buildathon/releases/latest) | v0.1.0 | **live** |
+| MCP server | [npm `xerant-mcp-server`](https://www.npmjs.com/package/xerant-mcp-server) | 0.1.0 | **live** |
+| One-liner installer | `curl … install-remote.sh` | tracks `main` | **live** |
+| `xerant-cli` npm package | [npm `xerant-cli`](https://www.npmjs.com/package/xerant-cli) | — | **pending** (v0.2) |
+| `@xerant/*` npm scope | npm org `xerant` | — | **pending** (needs org creation) |
+| `xerant.cloud/install` vanity URL | Next.js redirect | — | **pending** (see below) |
 
 ---
 
@@ -328,7 +356,7 @@ Commit the resulting `bin/xerant-mcp.mjs` with your source change.
 
 ### `xerant.cloud/install` redirect
 
-For the one-liner `curl -fsSL https://xerant.cloud/install | sh` to work, the marketing site must redirect `/install` to this repo's `install-remote.sh`. The site is Next.js — add this to `xerant/next.config.ts`:
+For the one-liner `curl -fsSL https://xerant.cloud/install | sh` to work, the marketing site (`xerant/` at the repo root) must redirect `/install` to this repo's `install-remote.sh`. Add this to `xerant/next.config.ts`:
 
 ```ts
 import type { NextConfig } from "next";
@@ -349,9 +377,7 @@ const nextConfig: NextConfig = {
 export default nextConfig;
 ```
 
-Deploy the site and the one-liner starts working. Until then, use the `raw.githubusercontent.com` URL directly.
-
-For Vercel-hosted deploys without touching `next.config.ts`, a `xerant/vercel.json` also works:
+Deploy the site and the one-liner starts working. A `xerant/vercel.json` alternative also works if you host there:
 
 ```json
 {
@@ -365,28 +391,43 @@ For Vercel-hosted deploys without touching `next.config.ts`, a `xerant/vercel.js
 }
 ```
 
-### Planned: npm packages (`@xerant/*`)
+### Moving to the `@xerant` npm scope
 
-Long-term the install flow should move to npm so users get `npx -y @xerant/cli install` with autoupdate and signed artifacts. Two packages to publish, once the `@xerant` npm org is created:
+The server is currently published as unscoped `xerant-mcp-server` because the `@xerant` org didn't exist at publish time. When ready to migrate:
 
-| Package | Source | Purpose |
-|---|---|---|
-| `@xerant/mcp-server` | `mcp-server/` | Spawned by OpenCode as `npx -y @xerant/mcp-server` |
-| `@xerant/cli` | new `cli/` dir | `npx -y @xerant/cli install` — copies skill, writes opencode.json, points at the npm MCP package |
+1. Create the org at <https://www.npmjs.com/org/create> (free tier for public packages, ~30 seconds via web UI — not available via npm CLI).
+2. `cd mcp-server && npm pkg set name=@xerant/mcp-server && npm version minor && npm publish`.
+3. Update the skill's `install.sh`, `install-remote.sh`, this README, and the top-level `opencode.json` to prefer `@xerant/mcp-server`.
+4. Deprecate the unscoped name with a pointer:
+   ```bash
+   npm deprecate xerant-mcp-server "Renamed to @xerant/mcp-server"
+   ```
 
-Once those are live, the installer swaps:
+### Planned `xerant-cli` package
 
-```json
-"command": ["node", "./.agents/skills/xerant/bin/xerant-mcp.mjs"]
+Target one-liner: `npx -y xerant-cli install`. The package will ship a compiled install command that embeds this skill's assets and writes `opencode.json` with the `npx -y xerant-mcp-server@latest` MCP command. Scaffold lives at `cli/` in this repo (work in progress). Once shipped, this section gets replaced with the `npx` one-liner at the top of the README.
+
+### Cutting a release
+
+```bash
+# 1. Make sure mcp-server is re-bundled so bin/xerant-mcp.mjs is up to date
+cd mcp-server && npm run bundle && cd ..
+
+# 2. Build the skill tarball
+tar -czf /tmp/xerant-skill-vX.Y.Z.tar.gz -C . .agents/skills/xerant
+
+# 3. Tag + push + create release
+git tag -a vX.Y.Z -m "xerant vX.Y.Z"
+git push origin vX.Y.Z
+gh release create vX.Y.Z /tmp/xerant-skill-vX.Y.Z.tar.gz \
+  --title "vX.Y.Z — <description>" \
+  --notes "<release notes>"
+
+# 4. Bump the npm package version if mcp-server source changed
+cd mcp-server && npm version patch && npm publish
 ```
 
-to:
-
-```json
-"command": ["npx", "-y", "@xerant/mcp-server@latest"]
-```
-
-…and the committed `bin/xerant-mcp.mjs` becomes redundant (though we keep it for offline installs).
+---
 
 ## Related docs
 
@@ -399,4 +440,4 @@ to:
 
 ---
 
-Questions / issues: open one against `sanchaymittal/buildathon`.
+Questions / issues: [open one on GitHub](https://github.com/sanchaymittal/buildathon/issues).
