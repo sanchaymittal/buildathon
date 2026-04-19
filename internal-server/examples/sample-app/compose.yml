@@ -1,0 +1,10 @@
+services:
+  web:
+    build: .
+    image: agentic-devops-sample-app:latest
+    environment:
+      PORT: "8000"
+      GREETING: "Hello from Agentic DevOps"
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
