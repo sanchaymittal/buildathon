@@ -1,0 +1,72 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Environment / secrets — DO NOT SHIP
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+.aws
+.ssh
+.netrc
+.npmrc
+.yarnrc
+.pypirc
+credentials.json
+service-account*.json
+
+# Dependency directories
+node_modules
+.pnpm-store
+.yarn/cache
+.yarn/install-state.gz
+vendor
+__pycache__
+*.pyc
+
+# Build artifacts
+.next
+out
+dist
+build
+.turbo
+.cache
+.parcel-cache
+coverage
+.nyc_output
+*.log
+.DS_Store
+
+# Editors / IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Tests
+*.test.*
+*.spec.*
+tests
+__tests__
+
+# Docs that don't belong in images
+README.md
+CHANGELOG.md
+docs
+*.md
+!LICENSE*
+
+# CI / tooling configs (optional — remove if your build needs them)
+.github
+.gitlab-ci.yml
+.circleci
+Jenkinsfile
