@@ -167,6 +167,73 @@ The low-level `gemini_agents.function_tool` decorators in
 `src/github/github_tools.py` are what actually get wired into the
 Gemini function-calling loop.
 
+## Five-Agent DevOps Team
+
+The real MVP is a coordinated team of five specialists that ship a change
+end to end on a single Docker host.
+
+| # | Agent  | Role              | Tools (MVP)                                                             |
+|---|--------|-------------------|--------------------------------------------------------------------------|
+| 1 | Axiom  | Orchestrator      | linear / slack / github stubs, update_team_state, request_approval, handoffs |
+| 2 | Forge  | Staff Engineer    | read_file, write_file, apply_patch, run_shell (whitelisted), run_pytest, git |
+| 3 | Warden | Security Engineer | run_semgrep / run_trivy / run_gitleaks (real binaries or stubs), block_or_approve |
+| 4 | Vector | Deployer          | build_image, push_image (stub), rollout_bluegreen, switch_active, rollback_to |
+| 5 | Sentry | Observer          | poll_services, http_probe, watch (windowed), trigger_rollback               |
+
+### Coordination
+
+Axiom is the single conversation; each peer is exposed to Axiom as a
+`handoff_to_forge / handoff_to_warden / handoff_to_vector / handoff_to_sentry`
+tool. Shared state lives in a pydantic `TeamContext` threaded through
+every `RunContextWrapper`. Agents mutate state only via explicit tools so
+every change is auditable.
+
+Warden's `block_or_approve` is a pure function of `TeamContext.findings`:
+any `severity >= high` finding flips the run to `waiting_for_approval`. A
+human resumes the run with `POST /team/runs/{id}/approve` (or fails it
+with `/reject`). Sentry owns rollback authority and will call
+`trigger_rollback` on its own if the watch window crosses the unhealthy
+threshold.
+
+Blue/green rollout works on one Docker host by using compose project
+names: `<base>-blue` and `<base>-green`. Vector brings up the candidate
+color alongside the active one, flips `active_color`, and only tears
+down the old stack once Sentry signs off.
+
+### HTTP surface (`/team/*`)
+
+```
+POST   /team/runs                    kick off a new run (202)
+GET    /team/runs                    list runs (summaries)
+GET    /team/runs/{id}               run summary + TeamContext
+GET    /team/runs/{id}/events        append-only event trail
+POST   /team/runs/{id}/approve       resume a waiting run
+POST   /team/runs/{id}/reject        fail a waiting run
+```
+
+### CLI (requires the server to be running)
+
+```bash
+# Kick off a run
+devops-agent team run "Ship examples/sample-app to staging" \
+  --path examples/sample-app
+
+# Observe
+devops-agent team status <run_id>
+devops-agent team events <run_id>
+
+# Approve or reject a blocked run
+devops-agent team approve <run_id> --gate pre_deploy
+devops-agent team reject  <run_id> --gate pre_deploy --reason "bad diff"
+```
+
+### Integration adapters
+
+`src/integrations/` ships `NullAdapter` implementations for Linear, Slack,
+PagerDuty, and GitHub PR comments. Every call is recorded to the shared
+audit log (`~/.devops/agent.log`). Real adapters drop in by calling the
+relevant `set_adapter(...)`; no agent code needs to change.
+
 ## Testing
 ```bash
 pytest
