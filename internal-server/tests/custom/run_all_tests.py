@@ -1,53 +1,45 @@
-"""
-Master script to run all DevOps CLI and OpenAI Agents tests.
-"""
+"""Master script to run DevOps CLI and Gemini agent tests."""
 
-import unittest
-import sys
 import os
+import sys
+import unittest
 
-# Add the parent directory to the path so we can import our modules
-sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
+import pytest
 
-# Import CLI test modules
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../../.."))
+
 from devops.tests.custom.test_cli_format import TestCLIFormatOutput
 
-# Import OpenAI Agents test modules
-from devops.tests.custom.test_openai_agents_simple import TestOpenAIAgentsTracing
-from devops.tests.custom.test_openai_agents_ec2 import TestOpenAIAgentsEC2
 
-def run_all_tests():
-    """Run all tests."""
-    # Create a test suite
+def run_all_tests() -> int:
+    """Run CLI unit tests via unittest and Gemini tests via pytest."""
+
     test_suite = unittest.TestSuite()
     test_loader = unittest.TestLoader()
-    
+
     print("=== Running CLI Tests ===")
-    
-    # Add tests from test_cli_format.py
     test_suite.addTest(test_loader.loadTestsFromTestCase(TestCLIFormatOutput))
-    
-    print("\n=== Running OpenAI Agents Tests ===")
-    
-    # Add tests from test_openai_agents_simple.py
-    test_suite.addTest(test_loader.loadTestsFromTestCase(TestOpenAIAgentsTracing))
-    
-    # Add tests from test_openai_agents_ec2.py
-    test_suite.addTest(test_loader.loadTestsFromTestCase(TestOpenAIAgentsEC2))
-    
-    # Run the tests
-    test_runner = unittest.TextTestRunner(verbosity=2)
-    result = test_runner.run(test_suite)
-    
-    # Print summary
+
+    runner = unittest.TextTestRunner(verbosity=2)
+    unit_result = runner.run(test_suite)
+
+    print("\n=== Running Gemini Agent Tests (pytest) ===")
+    gemini_tests = pytest.main([
+        "-xvs",
+        os.path.join(os.path.dirname(__file__), "test_gemini_agents.py"),
+        os.path.join(os.path.dirname(__file__), "test_gemini_agents_simple.py"),
+    ])
+
     print("\n=== Test Summary ===")
-    print(f"Total tests: {result.testsRun}")
-    print(f"Failures: {len(result.failures)}")
-    print(f"Errors: {len(result.errors)}")
-    print(f"Skipped: {len(result.skipped)}")
-    
-    # Return appropriate exit code
-    return 0 if result.wasSuccessful() else 1
+    print(f"Unit tests run: {unit_result.testsRun}")
+    print(f"Unit failures: {len(unit_result.failures)}")
+    print(f"Unit errors: {len(unit_result.errors)}")
+    print(f"Unit skipped: {len(unit_result.skipped)}")
+    print(f"Gemini pytest exit code: {gemini_tests}")
+
+    return 0 if unit_result.wasSuccessful() and gemini_tests == 0 else 1
+
 
 if __name__ == "__main__":
     sys.exit(run_all_tests())

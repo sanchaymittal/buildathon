@@ -10,8 +10,8 @@ import logging
 from typing import Dict, Any, Optional, List, Union
 from pydantic import BaseModel, Field
 
-from agents import Agent, Runner, GuardrailFunctionOutput, RunContextWrapper
-from agents import input_guardrail, output_guardrail
+from ..gemini_agents import Agent, Runner, GuardrailFunctionOutput, RunContextWrapper
+from ..gemini_agents import input_guardrail, output_guardrail
 
 # Configure logging
 logger = logging.getLogger(__name__)

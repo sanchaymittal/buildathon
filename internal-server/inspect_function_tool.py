@@ -2,7 +2,7 @@
 Script to inspect the FunctionTool object.
 """
 
-from agents import function_tool
+from src.gemini_agents import function_tool
 
 @function_tool()
 def test_func():

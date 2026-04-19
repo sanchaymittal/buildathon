@@ -1,5 +1,5 @@
 """
-DevOps Agent Package - Provides functionality for DevOps operations with OpenAI Agents SDK.
+DevOps Agent Package - Provides functionality for DevOps operations with the Gemini Agents SDK.
 
 This package includes modules for Docker container operations, GitHub integration,
 and other DevOps tools, designed to be used with the OpenAI Agents SDK.
