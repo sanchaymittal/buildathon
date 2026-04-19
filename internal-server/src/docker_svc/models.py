@@ -54,6 +54,16 @@ class DeployUserRequest(BaseModel):
         description="Unique user identifier for tenant segregation"
     )
 
+    branch: str = Field(
+        default="main",
+        description="Git branch to deploy"
+    )
+
+    github_token: Optional[str] = Field(
+        default=None,
+        description="Optional GitHub token for private repositories"
+    )
+
 
 class ContainerStatus(BaseModel):
     """Container status information."""

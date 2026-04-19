@@ -61,6 +61,19 @@ curl -s -X POST http://localhost:8000/deployments/quick \
   -H "Content-Type: application/json" \
   -d '{
     "repository": "owner/repo",
+    "user_id": "user-123",
+    "github_token": "<optional_token>"
+  }'
+```
+
+### Replace an Existing Deployment
+To delete any previous deployment for the same repo + user and redeploy:
+
+```bash
+curl -s -X POST http://localhost:8000/deployments/quick/replace \
+  -H "Content-Type: application/json" \
+  -d '{
+    "repository": "owner/repo",
     "user_id": "user-123"
   }'
 ```

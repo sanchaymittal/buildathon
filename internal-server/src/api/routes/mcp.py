@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 from ...docker_svc import DeployRequest, DeployUserRequest, Deployment
 from ...docker_svc.base import DockerServiceError
+from ...core.credentials import get_credential_manager
 from ..dependencies import get_deploy_service
 
 
@@ -44,6 +45,15 @@ def _ensure_user_access(deployment: Deployment, user_id: str) -> None:
         )
 
 
+def _get_github_token() -> Optional[str]:
+    try:
+        cred_manager = get_credential_manager()
+        creds = cred_manager.get_github_credentials()
+        return creds.token
+    except Exception:
+        return None
+
+
 def _tool_schemas() -> List[Dict[str, Any]]:
     deploy_input_schema = DeployUserRequest.model_json_schema()
     deployment_output_schema = Deployment.model_json_schema()
@@ -52,6 +62,12 @@ def _tool_schemas() -> List[Dict[str, Any]]:
         {
             "name": "deploy_quick",
             "description": "Deploy a GitHub repo with user_id segregation.",
+            "input_schema": deploy_input_schema,
+            "output_schema": deployment_output_schema,
+        },
+        {
+            "name": "deploy_replace",
+            "description": "Delete prior repo+user deployment and deploy again.",
             "input_schema": deploy_input_schema,
             "output_schema": deployment_output_schema,
         },
@@ -110,7 +126,7 @@ def call_tool(
             deploy_request = DeployRequest(repository=request.repository)
             deployment = deploy_service.deploy_from_github(
                 deploy_request,
-                github_token=None,
+                github_token=request.github_token or _get_github_token(),
                 user_id=request.user_id,
             )
             return ToolCallResponse(result=deployment)
@@ -119,6 +135,16 @@ def call_tool(
             request = DeploymentIdInput(**payload.arguments)
             deployment = deploy_service.get_deployment(request.deploy_id)
             _ensure_user_access(deployment, request.user_id)
+            return ToolCallResponse(result=deployment)
+
+        if payload.name == "deploy_replace":
+            request = DeployUserRequest(**payload.arguments)
+            deploy_request = DeployRequest(repository=request.repository)
+            deployment = deploy_service.replace_deployment(
+                deploy_request,
+                user_id=request.user_id,
+                github_token=request.github_token or _get_github_token(),
+            )
             return ToolCallResponse(result=deployment)
 
         if payload.name == "deploy_logs":

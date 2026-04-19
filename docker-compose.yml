@@ -1,0 +1,29 @@
+services:
+  backend:
+    build:
+      context: ./internal-server
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: "8000"
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    user: "0:0"
+    group_add:
+      - "${DOCKER_GID:-999}"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./xerant
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      INTERNAL_API_BASE_URL: http://backend:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped

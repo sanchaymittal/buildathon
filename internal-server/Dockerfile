@@ -38,7 +38,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 # Minimal runtime deps. `docker` python client uses the CLI socket path or tcp;
 # no docker binary needed inside the container itself.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends tini curl \
+ && apt-get install -y --no-install-recommends tini curl git \
  && rm -rf /var/lib/apt/lists/* \
  && addgroup --system --gid 1001 xerant \
  && adduser  --system --uid 1001 --ingroup xerant --home /app xerant

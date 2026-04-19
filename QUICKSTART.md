@@ -46,6 +46,21 @@ curl -s http://localhost:8000/health
 curl -s http://localhost:8000/health/docker
 ```
 
+## 1.5 Run frontend + backend together (Docker)
+
+If you want the Xerant UI and API together:
+
+```bash
+export DOCKER_GID=$(stat -c '%g' /var/run/docker.sock)
+docker compose up --build
+```
+
+Note: the backend runs as root in Docker Compose to ensure it can access the host Docker socket.
+
+Then open:
+- Frontend: http://localhost:3000
+- Backend: http://localhost:8000
+
 ## 2. Build the MCP bridge
 
 ```bash

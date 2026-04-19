@@ -25,7 +25,8 @@ curl -s -X POST http://localhost:8000/mcp/tools/call \
 ```
 
 ## Available Tools
-- `deploy_quick`: Deploy a GitHub repo with a `user_id`.
+- `deploy_quick`: Deploy a GitHub repo with a `user_id`. Optional `github_token` for private repos.
+- `deploy_replace`: Delete prior repo+user deployment and deploy again. Optional `github_token` for private repos.
 - `deploy_status`: Fetch deployment details by `deploy_id` + `user_id`.
 - `deploy_logs`: Fetch logs by `deploy_id` + `user_id`.
 - `deploy_down`: Remove a deployment by `deploy_id` + `user_id`.

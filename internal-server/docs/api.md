@@ -101,6 +101,7 @@ Responses:
 - **DeployUserRequest**
   - `repository` *(string, required)* – GitHub repo (`owner/name` or URL).
   - `user_id` *(string, required)* – Unique user identifier for tenant segregation.
+  - `github_token` *(string, optional)* – GitHub token for private repos.
 - **Deployment**
   - `id` *(string)* – Deployment identifier.
   - `user_id` *(string|null)* – Associated user identifier when provided.
@@ -126,6 +127,15 @@ Responses:
 
 ### `POST /deployments/quick`
 Create a deployment using only a GitHub repo and a `user_id`. Other settings use defaults.
+
+Request body: `DeployUserRequest`.
+
+Responses:
+- `201 Created` with a `Deployment` body (includes `user_id`).
+- `400 Bad Request` if cloning, building, or startup fails.
+
+### `POST /deployments/quick/replace`
+Delete any existing deployment for the same `repository` + `user_id`, then deploy fresh.
 
 Request body: `DeployUserRequest`.
 

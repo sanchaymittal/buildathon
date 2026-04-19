@@ -45,11 +45,38 @@ def create_user_deployment(
 ) -> Deployment:
     """Deploy a GitHub repository with a required user identifier."""
     try:
-        deploy_request = DeployRequest(repository=request.repository)
+        deploy_request = DeployRequest(
+            repository=request.repository,
+            branch=request.branch,
+        )
+        token = request.github_token or github_token
         deployment = deploy_service.deploy_from_github(
             deploy_request,
-            github_token,
+            token,
             user_id=request.user_id,
+        )
+        return deployment
+    except DockerServiceError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/quick/replace", response_model=Deployment, status_code=status.HTTP_201_CREATED)
+def replace_user_deployment(
+    request: DeployUserRequest,
+    deploy_service: DockerDeployService = Depends(get_deploy_service),
+    github_token: Optional[str] = Depends(_get_github_token),
+) -> Deployment:
+    """Replace any existing deployment for repo+user_id with a fresh deploy."""
+    try:
+        deploy_request = DeployRequest(
+            repository=request.repository,
+            branch=request.branch,
+        )
+        token = request.github_token or github_token
+        deployment = deploy_service.replace_deployment(
+            deploy_request,
+            user_id=request.user_id,
+            github_token=token,
         )
         return deployment
     except DockerServiceError as e:

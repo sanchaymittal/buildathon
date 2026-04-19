@@ -1,6 +1,7 @@
 import { Nav } from "@/components/nav";
 import { Footer } from "@/components/footer";
 import { Hero } from "@/components/sections/hero";
+import { DeploySection } from "@/components/sections/deploy";
 import { TeamSection } from "@/components/sections/team";
 import { SandboxSection } from "@/components/sections/sandbox";
 import { IntegrationSection } from "@/components/sections/integration";
@@ -14,6 +15,7 @@ export default function Home() {
       <Nav />
       <main className="pt-16">
         <Hero />
+        <DeploySection />
         <TeamSection />
         <SandboxSection />
         <IntegrationSection />

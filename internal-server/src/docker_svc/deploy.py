@@ -110,6 +110,12 @@ class DockerDeployService:
 
             if result.returncode != 0:
                 error_msg = result.stderr or result.stdout
+                lowered = error_msg.lower() if error_msg else ""
+                if "could not read username" in lowered or "authentication" in lowered:
+                    raise RepositoryError(
+                        "Git clone failed: authentication required",
+                        suggestion="Set GITHUB_TOKEN or provide github_token in the request.",
+                    )
                 if "not found" in error_msg.lower() or "404" in error_msg:
                     raise RepositoryError(
                         f"Repository or branch not found: {owner}/{repo} (branch: {branch})"
@@ -254,6 +260,38 @@ class DockerDeployService:
         finally:
             if target_dir.exists():
                 shutil.rmtree(target_dir, ignore_errors=True)
+
+    @docker_operation("replace_deployment")
+    def replace_deployment(
+        self,
+        request: DeployRequest,
+        user_id: str,
+        github_token: Optional[str] = None,
+    ) -> Deployment:
+        """Remove any existing deployment for repo+user and deploy anew."""
+
+        existing = [
+            deployment
+            for deployment in self.deployments.values()
+            if deployment.repository == request.repository
+            and deployment.user_id == user_id
+        ]
+
+        for deployment in existing:
+            try:
+                self.remove_deployment(deployment.id)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to remove deployment %s before replace: %s",
+                    deployment.id,
+                    exc,
+                )
+
+        return self.deploy_from_github(
+            request,
+            github_token=github_token,
+            user_id=user_id,
+        )
 
     def list_deployments(self) -> List[Deployment]:
         """List all deployments."""
