@@ -18,11 +18,8 @@ def run_tests():
         "test_cli.py",
         "test_error_handling.py",
         "run_cli_test.py",
-        "run_cli_tests.py",
-        "run_cli_error_tests.py",
-        "test_openai_agents_simple.py",
-        "test_openai_agents_ec2.py",
-        "test_openai_agents_tracing.py"  # Added the new test file
+        "test_gemini_agents_simple.py",
+        "test_gemini_agents.py",
     ]
     
     # Run each test file
@@ -31,7 +28,7 @@ def run_tests():
         test_path = os.path.join(current_dir, test_file)
         
         # Use pytest for test_cli.py since it uses pytest fixtures
-        if test_file == "test_cli.py":
+        if test_file in {"test_cli.py", "test_gemini_agents.py"}:
             result = subprocess.run(["pytest", "-xvs", test_path], capture_output=False)
         else:
             # Use python for other test files

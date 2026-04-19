@@ -14,8 +14,6 @@ def run_all_tests():
         "test_cli.py",
         "test_error_handling.py",
         "run_cli_test.py",
-        "run_cli_tests.py",
-        "run_cli_error_tests.py"
     ]
     
     # Run each test file

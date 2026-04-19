@@ -1,198 +1,222 @@
 """
 Tests for error handling functionality in the DevOps Agent.
 
-This module tests the error handling mechanisms in the AWS base service,
-GitHub service, and credential management.
+This module exercises error-handling behavior in a generic cloud service,
+the GitHub service, and credential management utilities.
 """
 
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 import sys
 import io
 
-# Define error classes
-class AWSServiceError(Exception):
-    """Base exception for AWS service errors."""
+
+class CloudServiceError(Exception):
+    """Base exception for cloud service errors."""
+
     def __init__(self, message, suggestion=None):
         super().__init__(message)
-        self.suggestion = suggestion or "Check your AWS configuration and try again."
+        self.suggestion = suggestion or "Review your cloud configuration and try again."
 
-class ResourceNotFoundError(AWSServiceError):
-    """Exception raised when a resource is not found."""
+
+class ResourceNotFoundError(CloudServiceError):
+    """Raised when an expected resource cannot be located."""
+
     def __init__(self, message, resource_type=None, resource_id=None):
-        suggestion = f"Check if the {resource_type} '{resource_id}' exists in your AWS account."
+        suggestion = (
+            f"Confirm the {resource_type} '{resource_id}' exists in your cloud environment."
+            if resource_type and resource_id
+            else "Confirm the resource exists in your cloud environment."
+        )
         super().__init__(message, suggestion)
         self.resource_type = resource_type
         self.resource_id = resource_id
 
-class PermissionDeniedError(AWSServiceError):
-    """Exception raised when permission is denied."""
+
+class PermissionDeniedError(CloudServiceError):
+    """Raised when permission is denied."""
+
     def __init__(self, message):
-        suggestion = "Check your IAM permissions and ensure you have the necessary access."
+        suggestion = "Verify role permissions and ensure the account has the required access."
         super().__init__(message, suggestion)
 
-class ValidationError(AWSServiceError):
-    """Exception raised when input validation fails."""
+
+class ValidationError(CloudServiceError):
+    """Raised when validation fails."""
+
     def __init__(self, message):
-        suggestion = "Check the input parameters and ensure they meet the requirements."
+        suggestion = "Inspect the supplied parameters and confirm they meet service requirements."
         super().__init__(message, suggestion)
 
-class RateLimitError(AWSServiceError):
-    """Exception raised when rate limit is exceeded."""
+
+class RateLimitError(CloudServiceError):
+    """Raised when a service throttles requests."""
+
     def __init__(self, message, wait_time=None):
-        suggestion = f"Wait for {wait_time} seconds and try again." if wait_time else "Try again later."
+        suggestion = (
+            f"Wait for {wait_time} seconds and retry."
+            if wait_time
+            else "Wait briefly before retrying."
+        )
         super().__init__(message, suggestion)
         self.wait_time = wait_time
 
-class ResourceLimitError(AWSServiceError):
-    """Exception raised when resource limit is exceeded."""
+
+class ResourceLimitError(CloudServiceError):
+    """Raised when a quota or resource ceiling is exceeded."""
+
     def __init__(self, message):
-        suggestion = "Request a limit increase or delete unused resources."
+        suggestion = "Request a quota increase or free unused capacity."
         super().__init__(message, suggestion)
+
 
 class GitHubError(Exception):
     """Base exception for GitHub service errors."""
+
     def __init__(self, message, suggestion=None):
         super().__init__(message)
         self.suggestion = suggestion or "Check your GitHub configuration and try again."
 
+
 class AuthenticationError(GitHubError):
-    """Exception raised when authentication fails."""
+    """Raised when GitHub authentication fails."""
+
     def __init__(self, message):
-        suggestion = "Check your GitHub token and ensure it has the necessary permissions."
+        suggestion = "Confirm your GitHub token is valid and has the required scopes."
         super().__init__(message, suggestion)
 
+
 class CredentialError(Exception):
-    """Exception raised when there's an issue with credentials."""
+    """Raised when credential retrieval fails."""
+
     def __init__(self, message, suggestion=None):
         super().__init__(message)
-        self.suggestion = suggestion or "Check your credential configuration."
+        self.suggestion = suggestion or "Review your credential configuration."
 
-# Mock AWS credentials
-class AWSCredentials:
-    def __init__(self, access_key_id, secret_access_key, region):
+
+class CloudCredentials:
+    """Simple credentials container used by the tests."""
+
+    def __init__(self, access_key_id, secret_key, region):
         self.access_key_id = access_key_id
-        self.secret_access_key = secret_access_key
+        self.secret_key = secret_key
         self.region = region
 
-# Mock GitHub credentials
+
 class GitHubCredentials:
+    """Simple GitHub credentials container."""
+
     def __init__(self, token):
         self.token = token
 
-# Error handling functions
+
 def print_error(error_type, message, suggestion=None):
-    """Print an error message with optional suggestion."""
+    """Print an error message with an optional suggestion."""
+
     print(f"ERROR: {error_type}")
-    print(f"{message}")
+    print(message)
     if suggestion:
         print(f"SUGGESTION: {suggestion}")
 
+
 def handle_cli_error(error):
-    """Handle CLI errors and return appropriate exit code."""
+    """Handle CLI errors and standardise exit codes."""
+
     if isinstance(error, CredentialError):
         print_error("Credential Error", str(error), error.suggestion)
-    elif isinstance(error, AWSServiceError):
-        print_error("AWS Error", str(error), error.suggestion)
+    elif isinstance(error, CloudServiceError):
+        print_error("Cloud Error", str(error), error.suggestion)
     elif isinstance(error, GitHubError):
         print_error("GitHub Error", str(error), error.suggestion)
     else:
         print_error("Unexpected Error", str(error))
-    
+
     return 1
 
-# Mock AWSBaseService
-class AWSBaseService:
+
+class CloudBaseService:
+    """Minimal base service that wraps error translation logic."""
+
     SERVICE_NAME = "base"
-    
+
     def __init__(self, credentials):
         self.credentials = credentials
-    
+
     def handle_error(self, error, operation_name):
-        """Handle AWS service errors."""
-        if hasattr(error, 'response') and 'Error' in error.response:
-            error_code = error.response['Error'].get('Code', '')
-            error_message = error.response['Error'].get('Message', str(error))
-            
-            if error_code == 'ResourceNotFoundException':
-                raise ResourceNotFoundError(error_message)
-            elif error_code == 'AccessDenied':
-                raise PermissionDeniedError(error_message)
-            elif error_code == 'ValidationError':
-                raise ValidationError(error_message)
-            elif error_code == 'ThrottlingException':
-                raise RateLimitError(error_message)
-            elif error_code == 'LimitExceededException':
-                raise ResourceLimitError(error_message)
-        
-        # Default case
-        raise AWSServiceError(f"Error in {operation_name}: {str(error)}")
+        """Translate service responses into explicit error types."""
+
+        if hasattr(error, "response") and "error" in error.response:
+            info = error.response["error"]
+            code = info.get("code", "")
+            message = info.get("message", str(error))
+
+            if code == "ResourceMissing":
+                raise ResourceNotFoundError(message)
+            if code == "AccessDenied":
+                raise PermissionDeniedError(message)
+            if code == "ValidationFailed":
+                raise ValidationError(message)
+            if code == "Throttled":
+                raise RateLimitError(message)
+            if code == "QuotaExceeded":
+                raise ResourceLimitError(message)
+
+        raise CloudServiceError(f"Error in {operation_name}: {error}")
 
 
 class TestErrorHandling(unittest.TestCase):
     """Test error handling functionality."""
 
     def setUp(self):
-        """Set up test fixtures."""
-        # Capture stdout for testing print output
         self.stdout_capture = io.StringIO()
         self.original_stdout = sys.stdout
         sys.stdout = self.stdout_capture
 
     def tearDown(self):
-        """Tear down test fixtures."""
         sys.stdout = self.original_stdout
 
-    def test_aws_service_error_with_suggestion(self):
-        """Test AWSServiceError with suggestion."""
-        error = AWSServiceError("Test error message", "Test suggestion")
+    def test_cloud_service_error_with_suggestion(self):
+        error = CloudServiceError("Test error message", "Test suggestion")
         self.assertEqual(str(error), "Test error message")
         self.assertEqual(error.suggestion, "Test suggestion")
 
     def test_resource_not_found_error(self):
-        """Test ResourceNotFoundError with resource type and ID."""
         error = ResourceNotFoundError(
             "Resource not found",
-            resource_type="instance",
-            resource_id="i-1234567890abcdef0"
+            resource_type="container",
+            resource_id="container-1234",
         )
         self.assertEqual(str(error), "Resource not found")
-        self.assertEqual(error.resource_type, "instance")
-        self.assertEqual(error.resource_id, "i-1234567890abcdef0")
-        self.assertIn("Check if the instance", error.suggestion)
+        self.assertEqual(error.resource_type, "container")
+        self.assertEqual(error.resource_id, "container-1234")
+        self.assertIn("cloud environment", error.suggestion)
 
     def test_permission_denied_error(self):
-        """Test PermissionDeniedError."""
         error = PermissionDeniedError("Permission denied")
         self.assertEqual(str(error), "Permission denied")
-        self.assertIn("Check your IAM permissions", error.suggestion)
+        self.assertIn("role permissions", error.suggestion)
 
     def test_validation_error(self):
-        """Test ValidationError."""
         error = ValidationError("Invalid parameters")
         self.assertEqual(str(error), "Invalid parameters")
-        self.assertIn("Check the input parameters", error.suggestion)
+        self.assertIn("supplied parameters", error.suggestion)
 
     def test_rate_limit_error(self):
-        """Test RateLimitError with wait time."""
         error = RateLimitError("Rate limit exceeded", 30)
         self.assertEqual(str(error), "Rate limit exceeded")
         self.assertIn("Wait for 30 seconds", error.suggestion)
 
     def test_resource_limit_error(self):
-        """Test ResourceLimitError."""
         error = ResourceLimitError("Resource limit exceeded")
         self.assertEqual(str(error), "Resource limit exceeded")
-        self.assertIn("Request a limit increase", error.suggestion)
+        self.assertIn("quota increase", error.suggestion)
 
     def test_credential_error(self):
-        """Test CredentialError with suggestion."""
-        error = CredentialError("No AWS credentials found", "Set AWS_ACCESS_KEY_ID")
-        self.assertEqual(str(error), "No AWS credentials found")
-        self.assertEqual(error.suggestion, "Set AWS_ACCESS_KEY_ID")
+        error = CredentialError("No cloud credentials found", "Set CLOUD_ACCESS_KEY")
+        self.assertEqual(str(error), "No cloud credentials found")
+        self.assertEqual(error.suggestion, "Set CLOUD_ACCESS_KEY")
 
     def test_print_error(self):
-        """Test print_error function."""
         print_error("Test Error", "Error details", "Try this solution")
         output = self.stdout_capture.getvalue()
         self.assertIn("ERROR: Test Error", output)
@@ -200,27 +224,24 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("SUGGESTION: Try this solution", output)
 
     def test_handle_cli_error_credential_error(self):
-        """Test handle_cli_error with CredentialError."""
-        error = CredentialError("No AWS credentials found", "Set AWS_ACCESS_KEY_ID")
+        error = CredentialError("No cloud credentials found", "Set CLOUD_ACCESS_KEY")
         result = handle_cli_error(error)
         output = self.stdout_capture.getvalue()
         self.assertIn("ERROR: Credential Error", output)
-        self.assertIn("No AWS credentials found", output)
-        self.assertIn("SUGGESTION: Set AWS_ACCESS_KEY_ID", output)
+        self.assertIn("No cloud credentials found", output)
+        self.assertIn("SUGGESTION: Set CLOUD_ACCESS_KEY", output)
         self.assertEqual(result, 1)
 
-    def test_handle_cli_error_aws_error(self):
-        """Test handle_cli_error with AWSServiceError."""
-        error = ResourceNotFoundError("Resource not found", "instance", "i-1234")
+    def test_handle_cli_error_cloud_error(self):
+        error = ResourceNotFoundError("Resource not found", "container", "container-1")
         result = handle_cli_error(error)
         output = self.stdout_capture.getvalue()
-        self.assertIn("ERROR: AWS Error", output)
+        self.assertIn("ERROR: Cloud Error", output)
         self.assertIn("Resource not found", output)
         self.assertIn("SUGGESTION:", output)
         self.assertEqual(result, 1)
 
     def test_handle_cli_error_github_error(self):
-        """Test handle_cli_error with GitHubError."""
         error = AuthenticationError("GitHub authentication failed")
         result = handle_cli_error(error)
         output = self.stdout_capture.getvalue()
@@ -229,45 +250,37 @@ class TestErrorHandling(unittest.TestCase):
         self.assertIn("SUGGESTION:", output)
         self.assertEqual(result, 1)
 
-    def test_aws_base_service_handle_error(self):
-        """Test AWSBaseService.handle_error method."""
-        # Create an instance of AWSBaseService
-        service = AWSBaseService(
-            credentials=AWSCredentials(
-                access_key_id="test", 
-                secret_access_key="test",
-                region="us-east-1"
+    def test_cloud_base_service_handle_error(self):
+        service = CloudBaseService(
+            credentials=CloudCredentials(
+                access_key_id="key", secret_key="secret", region="local"
             )
         )
-        
-        # Create a mock ClientError for resource not found
+
         error_response = {
-            'Error': {
-                'Code': 'ResourceNotFoundException',
-                'Message': 'Resource i-1234567890abcdef0 not found'
+            "error": {
+                "code": "ResourceMissing",
+                "message": "Container container-1234 not found",
             }
         }
         client_error = MagicMock()
         client_error.response = error_response
-        
-        # Test handling resource not found error
+
         with self.assertRaises(ResourceNotFoundError):
             service.handle_error(client_error, "test_operation")
-        
-        # Create a mock ClientError for permission denied
+
         error_response = {
-            'Error': {
-                'Code': 'AccessDenied',
-                'Message': 'User is not authorized'
+            "error": {
+                "code": "AccessDenied",
+                "message": "Caller not authorised",
             }
         }
         client_error = MagicMock()
         client_error.response = error_response
-        
-        # Test handling permission denied error
+
         with self.assertRaises(PermissionDeniedError):
             service.handle_error(client_error, "test_operation")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

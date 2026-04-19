@@ -2,7 +2,6 @@
 GitHub Models Module - Provides data models for GitHub operations.
 
 This module defines Pydantic models for GitHub repository requests, issue requests,
-pull request requests, and entity representations for use with the OpenAI Agents SDK.
 """
 
 from typing import Dict, List, Optional, Any

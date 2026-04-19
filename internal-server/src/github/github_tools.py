@@ -1,15 +1,15 @@
 """
-GitHub Tools Module - Provides function tools for GitHub operations with OpenAI Agents SDK.
+GitHub Tools Module - Provides function tools for GitHub operations with the Gemini Agents SDK.
 
 This module implements function tools for getting repository details, listing issues,
-creating issues, and listing pull requests, designed to be used with the OpenAI Agents SDK.
+creating issues, and listing pull requests, designed to be used with the Gemini Agents SDK.
 """
 
 import github
 import logging
 from typing import Dict, List, Any, Optional
 
-from agents import function_tool, RunContextWrapper
+from ..gemini_agents import function_tool, RunContextWrapper
 
 from .github_models import (
     GitHubRepoRequest,

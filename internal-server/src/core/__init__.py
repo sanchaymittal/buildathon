@@ -2,7 +2,7 @@
 Core Package - Provides core functionality for DevOps operations.
 
 This package includes modules for configuration, credentials, context management,
-and guardrails, with integration for the OpenAI Agents SDK.
+and guardrails, with integration for the Gemini Agents SDK.
 """
 
 from .config import (

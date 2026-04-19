@@ -1,14 +1,13 @@
 """
-Docker Tools Module - Provides function tools for Docker operations with OpenAI Agents SDK.
+Docker Tools Module - Provides function tools for Docker operations with the Gemini Agents SDK.
 
 This module implements function tools for deploying repositories, managing containers,
-and orchestration, designed to be used with the OpenAI Agents SDK.
 """
 
 import logging
 from typing import Dict, List, Any, Optional
 
-from agents import function_tool, RunContextWrapper
+from ..gemini_agents import function_tool, RunContextWrapper
 
 from .deploy import DockerDeployService
 from .models import (

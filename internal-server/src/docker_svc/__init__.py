@@ -2,7 +2,7 @@
 Docker Package - Provides functionality for Docker container operations.
 
 This package includes modules for building images, running containers,
-deploying from GitHub, and orchestration.
+deploying from GitHub, and orchestration with Gemini-compatible function tools.
 """
 
 from .base import (
