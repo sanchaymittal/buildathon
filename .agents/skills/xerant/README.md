@@ -6,24 +6,55 @@ Deploy any project to the Xerant internal DevOps platform from OpenCode, in one 
 OpenCode ── stdio ──▶ xerant-mcp (bundled) ── HTTP ──▶ internal-server ──▶ Docker
 ```
 
-This folder is the **entire skill** — workflow spec, installer, pre-built MCP bridge, security scripts, and Dockerfile / compose templates. Drop it into any project, run the installer, and OpenCode can use it.
+This folder is the **entire skill** — workflow spec, installer, pre-built MCP bridge, security scripts, and Dockerfile / compose templates.
 
 ---
 
-## TL;DR
+## Install (one line)
+
+From the root of the project you want to deploy:
 
 ```bash
-# 1. Copy this folder into your project
-cp -r /path/to/xerant .agents/skills/xerant
+curl -fsSL https://xerant.cloud/install | sh
+```
 
-# 2. Wire it into OpenCode (creates or merges ./opencode.json)
-bash .agents/skills/xerant/install.sh
+That's the whole install. The script downloads the skill into `.agents/skills/xerant/`, wires `./opencode.json`, and self-tests the 22 MCP tools. Then restart OpenCode and run:
 
-# 3. Restart OpenCode, then in your prompt:
+```
 /xerant --prod
 ```
 
-That's it. The installer ships a pre-bundled MCP server — no `npm install`, no build step.
+### One-line alternatives
+
+If you're somewhere `xerant.cloud` isn't reachable, or want a pinned ref:
+
+```bash
+# Direct from GitHub (always current main)
+curl -fsSL https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh | bash
+
+# Pin to a specific ref / branch / tag / SHA
+curl -fsSL https://xerant.cloud/install | XERANT_REF=v0.2.0 sh
+```
+
+### Install options (env vars)
+
+| Var | Default | Purpose |
+|---|---|---|
+| `XERANT_REF` | `main` | Branch, tag, or commit SHA to pull the skill from |
+| `XERANT_REPO` | `sanchaymittal/buildathon` | Override the source repo (for forks / mirrors) |
+| `XERANT_TARGET` | `.agents/skills/xerant` | Destination directory inside your project |
+| `XERANT_FORCE` | `0` | Set `1` to overwrite an existing skill dir |
+
+### Offline / air-gapped install
+
+The skill folder is fully self-contained (~750 KB including the bundled MCP). Copy it in by hand:
+
+```bash
+cp -r /path/to/xerant .agents/skills/xerant
+bash .agents/skills/xerant/install.sh
+```
+
+No network calls are made after install.
 
 ---
 
@@ -230,6 +261,9 @@ opencode mcp list
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| `curl https://xerant.cloud/install` → 404 | Marketing site redirect not deployed yet | Use the raw GitHub URL instead: `curl -fsSL https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh \| bash` |
+| `install-remote.sh` says "Destination already exists" | Previous install present | Re-run with `XERANT_FORCE=1`: `curl ... \| XERANT_FORCE=1 sh` |
+| Extract failed ("repo may not contain") | Bad `XERANT_REF` | Verify the branch/tag/sha exists on the source repo |
 | `install.sh` says "node is not on PATH" | Node not installed | Install Node ≥ 20 from <https://nodejs.org> |
 | `install.sh` says "Node X is too old" | Node < 20 | Upgrade Node; `nvm install 20` if using nvm |
 | `install.sh` says "Bundled MCP binary missing" | Copied only part of the folder | Re-copy the whole `.agents/skills/xerant/` tree, including `bin/` |
@@ -247,9 +281,10 @@ opencode mcp list
 
 ```
 xerant/
-├── README.md                  # this file
+├── README.md                  # this file (human-facing)
 ├── SKILL.md                   # agent-facing spec (frontmatter + workflow)
-├── install.sh                 # drop-in installer (merges opencode.json)
+├── install-remote.sh          # curl | sh entry point (fetches tree from GitHub)
+├── install.sh                 # local installer (merges opencode.json)
 ├── bin/
 │   └── xerant-mcp.mjs         # pre-bundled MCP server (~720KB, Node >= 20, 22 tools)
 ├── scripts/
@@ -289,9 +324,75 @@ Commit the resulting `bin/xerant-mcp.mjs` with your source change.
 
 ---
 
+## For maintainers
+
+### `xerant.cloud/install` redirect
+
+For the one-liner `curl -fsSL https://xerant.cloud/install | sh` to work, the marketing site must redirect `/install` to this repo's `install-remote.sh`. The site is Next.js — add this to `xerant/next.config.ts`:
+
+```ts
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  async redirects() {
+    return [
+      {
+        source: "/install",
+        destination:
+          "https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh",
+        permanent: false,
+      },
+    ];
+  },
+};
+
+export default nextConfig;
+```
+
+Deploy the site and the one-liner starts working. Until then, use the `raw.githubusercontent.com` URL directly.
+
+For Vercel-hosted deploys without touching `next.config.ts`, a `xerant/vercel.json` also works:
+
+```json
+{
+  "redirects": [
+    {
+      "source": "/install",
+      "destination": "https://raw.githubusercontent.com/sanchaymittal/buildathon/main/.agents/skills/xerant/install-remote.sh",
+      "permanent": false
+    }
+  ]
+}
+```
+
+### Planned: npm packages (`@xerant/*`)
+
+Long-term the install flow should move to npm so users get `npx -y @xerant/cli install` with autoupdate and signed artifacts. Two packages to publish, once the `@xerant` npm org is created:
+
+| Package | Source | Purpose |
+|---|---|---|
+| `@xerant/mcp-server` | `mcp-server/` | Spawned by OpenCode as `npx -y @xerant/mcp-server` |
+| `@xerant/cli` | new `cli/` dir | `npx -y @xerant/cli install` — copies skill, writes opencode.json, points at the npm MCP package |
+
+Once those are live, the installer swaps:
+
+```json
+"command": ["node", "./.agents/skills/xerant/bin/xerant-mcp.mjs"]
+```
+
+to:
+
+```json
+"command": ["npx", "-y", "@xerant/mcp-server@latest"]
+```
+
+…and the committed `bin/xerant-mcp.mjs` becomes redundant (though we keep it for offline installs).
+
 ## Related docs
 
 - **`SKILL.md`** (this folder) — the workflow spec OpenCode reads.
+- **`install.sh`** — local installer (called by `install-remote.sh` after it fetches the tree).
+- **`install-remote.sh`** — the `curl | sh` entry point that fetches the skill from GitHub.
 - **`QUICKSTART.md`** (repo root, if you have the full buildathon checkout) — end-to-end: start internal-server → build MCP → restart OpenCode.
 - **`mcp-server/README.md`** — MCP server source, dev workflow, and how its tools map to REST endpoints.
 - **`internal-server/AGENTS.md`** — API surface + contract the skill relies on.
