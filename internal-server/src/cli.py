@@ -277,6 +277,49 @@ def setup_serve_parser(subparsers):
     )
 
 
+def setup_team_parser(subparsers):
+    """Set up the 'team' command group (talks to the FastAPI server)."""
+    team_parser = subparsers.add_parser(
+        "team",
+        help=(
+            "Drive the five-agent DevOps team via the FastAPI server "
+            "(defaults to http://localhost:8000)."
+        ),
+    )
+    team_parser.add_argument(
+        "--server",
+        default="http://localhost:8000",
+        help="Base URL of the internal-server API",
+    )
+    team_sub = team_parser.add_subparsers(dest="team_command", help="Team command")
+
+    run = team_sub.add_parser("run", help="Kick off a new team run")
+    run.add_argument("task", help="What the team should accomplish")
+    run.add_argument(
+        "--path", required=True, help="Local project path for Forge / Vector"
+    )
+    run.add_argument("--user-id", default="cli")
+    run.add_argument("--json", action="store_true")
+
+    status_cmd = team_sub.add_parser("status", help="Show a run summary")
+    status_cmd.add_argument("run_id")
+    status_cmd.add_argument("--json", action="store_true")
+
+    events = team_sub.add_parser("events", help="Show the event trail")
+    events.add_argument("run_id")
+    events.add_argument("--json", action="store_true")
+
+    approve = team_sub.add_parser("approve", help="Approve a gate")
+    approve.add_argument("run_id")
+    approve.add_argument("--gate", required=True)
+    approve.add_argument("--reason", default=None)
+
+    reject = team_sub.add_parser("reject", help="Reject a gate")
+    reject.add_argument("run_id")
+    reject.add_argument("--gate", required=True)
+    reject.add_argument("--reason", default=None)
+
+
 def setup_agent_parser(subparsers):
     """Set up the argument parser for the Gemini-backed agent."""
     agent_parser = subparsers.add_parser(
@@ -666,6 +709,101 @@ def _print_run_result(result, as_json: bool) -> None:
     )
 
 
+def handle_team_command(args):
+    """Handle 'team ...' commands by talking to the FastAPI server."""
+    try:
+        import requests  # type: ignore
+
+        base = args.server.rstrip("/")
+        if not args.team_command:
+            print_error(
+                "Missing team subcommand",
+                suggestion="Try 'team run \"Ship examples/sample-app\" --path examples/sample-app'.",
+            )
+            return 1
+
+        if args.team_command == "run":
+            response = requests.post(
+                f"{base}/team/runs",
+                json={
+                    "task": args.task,
+                    "project_path": args.path,
+                    "user_id": args.user_id,
+                },
+                timeout=30,
+            )
+            response.raise_for_status()
+            body = response.json()
+            if args.json:
+                print(json.dumps(body, indent=2, default=str))
+                return 0
+            print(f"{COLORS['green']}Run started{COLORS['reset']}")
+            print(f"run_id: {body['run_id']}")
+            print(f"status: {body['status']}")
+            print(
+                f"Tail events with: devops-agent team events {body['run_id']} --server {args.server}"
+            )
+            return 0
+
+        if args.team_command == "status":
+            response = requests.get(f"{base}/team/runs/{args.run_id}", timeout=15)
+            response.raise_for_status()
+            body = response.json()
+            if args.json:
+                print(json.dumps(body, indent=2, default=str))
+            else:
+                for key, val in body.items():
+                    print(f"{key}: {val}")
+            return 0
+
+        if args.team_command == "events":
+            response = requests.get(
+                f"{base}/team/runs/{args.run_id}/events", timeout=15
+            )
+            response.raise_for_status()
+            events = response.json()
+            if args.json:
+                print(json.dumps(events, indent=2, default=str))
+                return 0
+            if not events:
+                print(f"{COLORS['yellow']}No events yet.{COLORS['reset']}")
+                return 0
+            for evt in events:
+                print(
+                    f"[{evt['timestamp']:.3f}] {COLORS['cyan']}{evt['event']}{COLORS['reset']}"
+                )
+                if evt.get("payload"):
+                    print(f"    {json.dumps(evt['payload'], default=str)}")
+            return 0
+
+        if args.team_command in ("approve", "reject"):
+            path = "approve" if args.team_command == "approve" else "reject"
+            response = requests.post(
+                f"{base}/team/runs/{args.run_id}/{path}",
+                json={"gate": args.gate, "reason": args.reason},
+                timeout=15,
+            )
+            if response.status_code == 409:
+                print_error(
+                    "Cannot apply gate decision",
+                    f"Server says: {response.json().get('detail')}",
+                )
+                return 1
+            response.raise_for_status()
+            body = response.json()
+            print(
+                f"{COLORS['green']}{args.team_command}d{COLORS['reset']} "
+                f"run {args.run_id} at gate '{args.gate}' "
+                f"(status={body['status']})"
+            )
+            return 0
+
+        return 0
+
+    except Exception as e:  # noqa: BLE001
+        return handle_cli_error(e)
+
+
 def handle_agent_command(args):
     """Handle 'agent ...' commands."""
     try:
@@ -737,6 +875,7 @@ def main():
         setup_github_parser(subparsers)
         setup_serve_parser(subparsers)
         setup_agent_parser(subparsers)
+        setup_team_parser(subparsers)
 
         args = parser.parse_args()
 
@@ -764,6 +903,9 @@ def main():
 
         elif args.command == "agent":
             sys.exit(handle_agent_command(args))
+
+        elif args.command == "team":
+            sys.exit(handle_team_command(args))
 
         sys.exit(0)
 
