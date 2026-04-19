@@ -26,7 +26,7 @@ from ..core.context import DevOpsContext
 logger = logging.getLogger(__name__)
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def get_repository(
     ctx: RunContextWrapper[DevOpsContext],
     request: GitHubRepoRequest
@@ -70,7 +70,7 @@ async def get_repository(
     return result
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def list_issues(
     ctx: RunContextWrapper[DevOpsContext],
     request: GitHubIssueRequest
@@ -120,7 +120,7 @@ async def list_issues(
     return result
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def create_issue(
     ctx: RunContextWrapper[DevOpsContext],
     request: GitHubCreateIssueRequest
@@ -172,7 +172,7 @@ async def create_issue(
     return result
 
 
-@function_tool()
+@function_tool(strict_mode=False)
 async def list_pull_requests(
     ctx: RunContextWrapper[DevOpsContext],
     request: GitHubPRRequest

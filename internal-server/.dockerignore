@@ -1,0 +1,44 @@
+# VCS
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+.pytest_cache
+.mypy_cache
+.ruff_cache
+*.egg-info
+build
+dist
+.venv
+venv
+env
+
+# Tests / docs — not needed in production image
+tests
+docs
+*.md
+!README.md
+inspect_function_tool.py
+
+# Secrets / env — never ship
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa
+id_rsa.*
+.aws
+.ssh
+credentials.json
+service-account*.json
+~/.devops
+
+# Editors
+.vscode
+.idea
+*.swp
+.DS_Store

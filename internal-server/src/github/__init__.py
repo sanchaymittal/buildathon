@@ -5,6 +5,8 @@ This package includes modules for repositories, issues, pull requests, and other
 GitHub resources, with integration for the OpenAI Agents SDK.
 """
 
+from .github import GitHubService
+
 from .github_models import (
     GitHubRepoRequest,
     GitHubIssueRequest,
@@ -23,6 +25,9 @@ from .github_tools import (
 )
 
 __all__ = [
+    # Service
+    'GitHubService',
+
     # GitHub Models
     'GitHubRepoRequest',
     'GitHubIssueRequest',
@@ -31,7 +36,7 @@ __all__ = [
     'GitHubRepository',
     'GitHubIssue',
     'GitHubPullRequest',
-    
+
     # GitHub Tools
     'get_repository',
     'list_issues',
