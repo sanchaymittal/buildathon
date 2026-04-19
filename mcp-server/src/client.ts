@@ -192,6 +192,41 @@ export class XerantClient {
       { query: { ref } },
     );
   }
+
+  // ---------- compose (local-path MVP) ----------
+  composePing() {
+    return this.request<{ status: string }>("GET", "/compose/ping");
+  }
+
+  composeUp(body: {
+    project_path: string;
+    compose_file?: string;
+    project_name?: string;
+    env?: Record<string, string>;
+    env_file?: string;
+    build?: boolean;
+    pull?: boolean;
+  }) {
+    return this.request<DeployLocalResult>("POST", "/compose/up", { body });
+  }
+
+  composeDown(body: { project_path: string; compose_file?: string; project_name?: string }) {
+    return this.request<{ output: string }>("POST", "/compose/down", { body });
+  }
+
+  composeStatus(body: { project_path: string; compose_file?: string; project_name?: string }) {
+    return this.request<ComposeServiceStatus[]>("POST", "/compose/status", { body });
+  }
+
+  composeLogs(body: {
+    project_path: string;
+    compose_file?: string;
+    project_name?: string;
+    service?: string;
+    tail?: number;
+  }) {
+    return this.request<{ logs: string }>("POST", "/compose/logs", { body });
+  }
 }
 
 function encodePath(p: string): string {
@@ -225,4 +260,24 @@ export interface Deployment {
   logs_tail?: string | null;
   env: Record<string, string>;
   labels: Record<string, string>;
+}
+
+export interface ComposeServiceStatus {
+  service: string;
+  container_id: string;
+  name: string;
+  state: string;
+  status: string;
+  ports: string;
+}
+
+export interface DeployLocalResult {
+  status: "succeeded" | "failed" | string;
+  project_name: string;
+  project_path: string;
+  compose_file: string;
+  services: ComposeServiceStatus[];
+  output: string;
+  error?: string | null;
+  agents_md_excerpt?: string | null;
 }

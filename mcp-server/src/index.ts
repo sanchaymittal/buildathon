@@ -320,6 +320,121 @@ server.registerTool(
   (args) => safe(() => client.getRepoFileContent(args.owner, args.repo, args.path, args.ref)),
 );
 
+// ---------- compose (local-path MVP) ----------
+
+server.registerTool(
+  "xerant_compose_ping",
+  {
+    title: "Compose ping",
+    description: "Ping the local Docker daemon that the compose service uses.",
+    inputSchema: {},
+  },
+  () => safe(() => client.composePing()),
+);
+
+server.registerTool(
+  "xerant_compose_up",
+  {
+    title: "Compose up",
+    description:
+      "Deploy a LOCAL project via `docker compose up -d`. The project directory " +
+      "must contain a Dockerfile and a compose file (compose.yml / docker-compose.yml). " +
+      "This is the Xerant MVP flow — no GitHub clone, no registry push. " +
+      "A compose-level failure is returned with status='failed' (HTTP 200) so the caller can inspect output.",
+    inputSchema: {
+      project_path: z.string().min(1).describe("Absolute or relative path to the project directory."),
+      compose_file: z
+        .string()
+        .optional()
+        .describe("Compose filename relative to project_path. Auto-detected if omitted."),
+      project_name: z.string().optional().describe("Compose project name. Auto-derived from path if omitted."),
+      env: z.record(z.string(), z.string()).default({}).describe("Environment variables for 'docker compose up'."),
+      env_file: z.string().optional().describe("Optional .env file relative to project_path."),
+      build: z.boolean().default(true).describe("Pass --build to 'docker compose up'."),
+      pull: z.boolean().default(false).describe("Pass --pull always to 'docker compose up'."),
+    },
+  },
+  (args) =>
+    safe(() =>
+      client.composeUp({
+        project_path: args.project_path,
+        compose_file: args.compose_file,
+        project_name: args.project_name,
+        env: args.env,
+        env_file: args.env_file,
+        build: args.build,
+        pull: args.pull,
+      }),
+    ),
+);
+
+server.registerTool(
+  "xerant_compose_down",
+  {
+    title: "Compose down",
+    description: "Bring down a local compose project (docker compose down).",
+    inputSchema: {
+      project_path: z.string().min(1),
+      compose_file: z.string().optional(),
+      project_name: z.string().optional(),
+    },
+  },
+  (args) =>
+    safe(() =>
+      client.composeDown({
+        project_path: args.project_path,
+        compose_file: args.compose_file,
+        project_name: args.project_name,
+      }),
+    ),
+);
+
+server.registerTool(
+  "xerant_compose_status",
+  {
+    title: "Compose status",
+    description: "Return per-service status for a local compose project.",
+    inputSchema: {
+      project_path: z.string().min(1),
+      compose_file: z.string().optional(),
+      project_name: z.string().optional(),
+    },
+  },
+  (args) =>
+    safe(() =>
+      client.composeStatus({
+        project_path: args.project_path,
+        compose_file: args.compose_file,
+        project_name: args.project_name,
+      }),
+    ),
+);
+
+server.registerTool(
+  "xerant_compose_logs",
+  {
+    title: "Compose logs",
+    description: "Return recent logs for a local compose project (optionally filtered to a single service).",
+    inputSchema: {
+      project_path: z.string().min(1),
+      compose_file: z.string().optional(),
+      project_name: z.string().optional(),
+      service: z.string().optional().describe("Compose service name. Omit to fetch all services."),
+      tail: z.number().int().positive().default(200),
+    },
+  },
+  (args) =>
+    safe(() =>
+      client.composeLogs({
+        project_path: args.project_path,
+        compose_file: args.compose_file,
+        project_name: args.project_name,
+        service: args.service,
+        tail: args.tail,
+      }),
+    ),
+);
+
 // ---------- entry ----------
 
 async function main(): Promise<void> {
