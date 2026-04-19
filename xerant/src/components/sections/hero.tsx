@@ -2,14 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { TextPlugin } from "gsap/TextPlugin";
 import { AGENTS } from "@/lib/agents";
 import { CtaButton } from "@/components/cta-button";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, TextPlugin);
-}
 
 const COLOR = {
   bg: "#000000",
@@ -41,7 +35,13 @@ export function Hero() {
 
     mm.add(
       "(min-width: 768px) and (prefers-reduced-motion: no-preference)",
-      () => {
+      async () => {
+        const [{ ScrollTrigger }, { TextPlugin }] = await Promise.all([
+          import("gsap/ScrollTrigger"),
+          import("gsap/TextPlugin"),
+        ]);
+        gsap.registerPlugin(ScrollTrigger, TextPlugin);
+
         const nodes = nodeRefs.current.filter(Boolean) as HTMLDivElement[];
         const labels = labelRefs.current.filter(Boolean) as HTMLSpanElement[];
         const connectors = connectorRefs.current.filter(
@@ -247,10 +247,11 @@ export function Hero() {
               <span
                 ref={rotatorRef}
                 className="absolute inset-0 font-semibold tracking-[-0.01em] text-[var(--color-accent)]"
-                aria-live="polite"
+                aria-hidden="true"
               >
                 {AGENT_NAMES[0]}
               </span>
+              <span className="sr-only">five-agent</span>
             </span>{" "}
             DevOps team. Sandboxed. On-call. Yours.
           </p>
@@ -312,7 +313,7 @@ export function Hero() {
 
           <div
             className="mt-8 border border-[var(--color-border)] bg-[var(--color-surface-1)] p-5 font-mono text-[12px] leading-[1.7] text-[var(--color-fg-muted)] md:mt-8 md:p-6 md:text-[13px]"
-            aria-live="polite"
+            aria-hidden="true"
           >
             {ALL_LINES.map((line, i) => (
               <p

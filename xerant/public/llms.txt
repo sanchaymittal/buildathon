@@ -8,8 +8,8 @@ Free while in beta. Sign in with GitHub to get started.
 
 ## Canonical pages
 
-- [Homepage](https://xerant.vercel.app/): product overview, the five agents, comparison to Vercel and Netlify, pricing, FAQ
-- [Sign in](https://xerant.vercel.app/signin): GitHub OAuth entry
+- [Homepage](https://www.xerant.cloud/): product overview, the five agents, comparison to Vercel and Netlify, pricing, FAQ
+- [Sign in](https://www.xerant.cloud/signin): GitHub OAuth entry
 - [GitHub repo](https://github.com/sanchaymittal/xerant): source
 
 ## The five agents

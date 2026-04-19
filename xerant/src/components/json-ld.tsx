@@ -1,7 +1,7 @@
 import { AGENTS } from "@/lib/agents";
 import { FAQ } from "@/content/faq";
 
-const SITE_URL = "https://xerant.vercel.app";
+const SITE_URL = "https://www.xerant.cloud";
 const ORG_NAME = "Xerant";
 const DESCRIPTION =
   "Five sandboxed AI agents run your deploy lifecycle: plan, code, security review, ship, observe. gVisor isolation per agent. Ship 60% cheaper than a 3-engineer rotation.";

@@ -25,7 +25,7 @@ export function FaqSection() {
             className="border-b border-[var(--color-border)]"
           >
             <AccordionTrigger className="py-6 text-left text-[17px] md:text-[19px] font-medium text-[var(--color-fg)] hover:no-underline">
-              {item.q}
+              <h3 className="m-0 text-inherit font-inherit">{item.q}</h3>
             </AccordionTrigger>
             <AccordionContent className="pb-6 text-[15px] leading-[1.6] text-[var(--color-fg-muted)]">
               {item.a}

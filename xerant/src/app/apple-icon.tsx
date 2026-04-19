@@ -1,4 +1,6 @@
 import { ImageResponse } from "next/og";
+import { XerantMark } from "@/components/brand/mark";
+import { BRAND_COLORS } from "@/components/brand/tokens";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
@@ -10,36 +12,13 @@ export default function AppleIcon() {
         style={{
           width: "100%",
           height: "100%",
-          background: "#000000",
+          background: BRAND_COLORS.bg,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 128,
-            height: 128,
-            borderRadius: 999,
-            border: "6px solid #FFB800",
-          }}
-        >
-          <span
-            style={{
-              fontFamily: "sans-serif",
-              fontSize: 84,
-              fontWeight: 700,
-              letterSpacing: -4,
-              color: "#F5F5F5",
-              lineHeight: 1,
-            }}
-          >
-            X
-          </span>
-        </div>
+        <XerantMark size={148} tone="dark" />
       </div>
     ),
     { ...size },

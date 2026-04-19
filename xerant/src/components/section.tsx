@@ -1,10 +1,7 @@
-"use client";
-
-import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
-const EASE = [0.22, 1, 0.36, 1] as const;
+export { FadeIn } from "@/components/fade-in";
 
 export function Section({
   id,
@@ -53,59 +50,17 @@ export function SectionHeader({
         className,
       )}
     >
-      <motion.p
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.2, ease: EASE }}
-        className="font-mono text-xs uppercase tracking-[0.08em] text-[var(--color-fg-dim)] mb-6"
-      >
+      <p className="font-mono text-xs uppercase tracking-[0.08em] text-[var(--color-fg-dim)] mb-6">
         {eyebrow}
-      </motion.p>
-      <motion.h2
-        initial={{ opacity: 0, y: 24 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, amount: 0.3 }}
-        transition={{ duration: 0.6, delay: 0.2, ease: EASE }}
-        className="text-[44px] leading-[1.04] tracking-[-0.035em] font-semibold max-w-[18ch] md:text-[56px] md:leading-[1.03] md:tracking-[-0.04em] lg:text-[72px] lg:leading-[1.02]"
-      >
+      </p>
+      <h2 className="text-[44px] leading-[1.04] tracking-[-0.035em] font-semibold max-w-[18ch] md:text-[56px] md:leading-[1.03] md:tracking-[-0.04em] lg:text-[72px] lg:leading-[1.02]">
         {headline}
-      </motion.h2>
+      </h2>
       {subhead && (
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6, delay: 0.3, ease: EASE }}
-          className="mt-8 text-[17px] leading-[1.55] text-[var(--color-fg-muted)] max-w-[640px]"
-        >
+        <p className="mt-8 text-[17px] leading-[1.55] text-[var(--color-fg-muted)] max-w-[640px]">
           {subhead}
-        </motion.p>
+        </p>
       )}
     </div>
-  );
-}
-
-export function FadeIn({
-  children,
-  delay = 0,
-  y = 20,
-  className,
-}: {
-  children: ReactNode;
-  delay?: number;
-  y?: number;
-  className?: string;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.6, delay, ease: EASE }}
-      className={className}
-    >
-      {children}
-    </motion.div>
   );
 }

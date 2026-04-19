@@ -44,14 +44,6 @@ const COLS = [
     ],
   },
   {
-    label: "Company",
-    links: [
-      { label: "About", href: "#" },
-      { label: "Blog", href: "#" },
-      { label: "Careers", href: "#" },
-    ],
-  },
-  {
     label: "Contact",
     links: [
       { label: "Email", href: `mailto:${CONTACT_EMAIL}` },

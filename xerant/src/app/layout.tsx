@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { JsonLd } from "@/components/json-ld";
 
-const SITE_URL = "https://xerant.vercel.app";
+const SITE_URL = "https://www.xerant.cloud";
 const SITE_NAME = "Xerant";
 const TITLE = "Xerant — Sandboxed AI DevOps Team · Save 60% with Military-Grade Security";
 const DESCRIPTION =
