@@ -13,6 +13,7 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json && node -e \"require('fs').chmodSync('dist/index.js', 0o755)\"",
+    "bundle": "esbuild src/index.ts --bundle --platform=node --target=node20 --format=esm --external:node:* --outfile=../.agents/skills/xerant/bin/xerant-mcp.mjs && node -e \"require('fs').chmodSync('../.agents/skills/xerant/bin/xerant-mcp.mjs', 0o755)\"",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -24,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
+    "esbuild": "^0.24.0",
     "tsx": "^4.20.0",
     "typescript": "^5.6.0"
   },
