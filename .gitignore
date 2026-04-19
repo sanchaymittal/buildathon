@@ -61,3 +61,5 @@ out/
 
 # Logs
 *.log
+
+credentials.json
