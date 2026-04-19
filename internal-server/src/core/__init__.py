@@ -5,52 +5,46 @@ This package includes modules for configuration, credentials, context management
 and guardrails, with integration for the Gemini Agents SDK.
 """
 
-from .config import (
-    get_config,
-    get_config_value,
-    set_config_value,
-    load_config
-)
+from .config import get_config, get_config_value, set_config_value, load_config
 
 from .credentials import (
     DockerCredentials,
     GitHubCredentials,
+    GeminiCredentials,
     CredentialManager,
     get_credential_manager,
-    set_credential_manager
+    set_credential_manager,
+    CredentialError,
 )
 
-from .context import (
-    DevOpsContext
-)
+from .context import DevOpsContext
 
 from .guardrails import (
     security_guardrail,
     sensitive_info_guardrail,
     SecurityCheckOutput,
-    SensitiveInfoOutput
+    SensitiveInfoOutput,
 )
 
 __all__ = [
     # Config
-    'get_config',
-    'get_config_value',
-    'set_config_value',
-    'load_config',
-    
+    "get_config",
+    "get_config_value",
+    "set_config_value",
+    "load_config",
     # Credentials
-    'DockerCredentials',
-    'GitHubCredentials',
-    'CredentialManager',
-    'get_credential_manager',
-    'set_credential_manager',
-    
+    "DockerCredentials",
+    "GitHubCredentials",
+    "GeminiCredentials",
+    "CredentialManager",
+    "get_credential_manager",
+    "set_credential_manager",
+    "CredentialError",
     # Context
-    'DevOpsContext',
-    
+    "DevOpsContext",
     # Guardrails
-    'security_guardrail',
-    'sensitive_info_guardrail',
-    'SecurityCheckOutput',
-    'SensitiveInfoOutput'
+    "security_guardrail",
+    "sensitive_info_guardrail",
+    "SecurityCheckOutput",
+    "SensitiveInfoOutput",
 ]
