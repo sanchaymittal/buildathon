@@ -50,16 +50,23 @@ class Agent:
 
 
 class Runner:
-    """Placeholder runner for Gemini orchestration.
+    """Gemini-driven agent runner.
 
-    The actual invocation logic should be provided by a real Gemini SDK client.
+    This indirection keeps the dataclass-style ``Agent`` definition dependency
+    free while allowing the full tool-calling loop in ``runner.GeminiRunner``
+    to be used when the Gemini SDK is installed and a valid API key is
+    configured. Tests can still inject a custom runner by monkey-patching
+    ``Runner.run``.
     """
 
     @staticmethod
     async def run(agent: Agent, prompt: str, context: Any = None) -> Any:
-        raise NotImplementedError(
-            "Gemini Runner integration is not implemented. Inject a custom runner or mock in tests."
-        )
+        # Local import to avoid import cycles and keep the SDK optional.
+        from .runner import GeminiRunner
+
+        runner = GeminiRunner()
+        return await runner.run(agent, prompt, context=context)
+
 
 _TRACING_DISABLED = False
 
@@ -71,7 +78,9 @@ def set_tracing_disabled(disabled: bool) -> None:
     _TRACING_DISABLED = disabled
 
 
-def function_tool(*decorator_args: Any, **decorator_kwargs: Any) -> Callable[[Callable[..., Any]], Any]:
+def function_tool(
+    *decorator_args: Any, **decorator_kwargs: Any
+) -> Callable[[Callable[..., Any]], Any]:
     """Decorator that marks a coroutine/function as a Gemini function tool."""
 
     def decorator(func: Callable[..., Any]) -> Any:
@@ -79,7 +88,9 @@ def function_tool(*decorator_args: Any, **decorator_kwargs: Any) -> Callable[[Ca
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
-        async def on_invoke_tool(run_context: RunContextWrapper[Any], *tool_args: Any, **tool_kwargs: Any) -> Any:
+        async def on_invoke_tool(
+            run_context: RunContextWrapper[Any], *tool_args: Any, **tool_kwargs: Any
+        ) -> Any:
             if inspect.iscoroutinefunction(func):
                 return await func(run_context, *tool_args, **tool_kwargs)  # type: ignore[arg-type]
             return func(run_context, *tool_args, **tool_kwargs)  # type: ignore[arg-type]
@@ -94,10 +105,14 @@ def function_tool(*decorator_args: Any, **decorator_kwargs: Any) -> Callable[[Ca
     return decorator
 
 
-def input_guardrail(func: Optional[Callable[..., Any]] = None) -> Callable[[Callable[..., Any]], Callable[..., Awaitable[GuardrailFunctionOutput]]]:
+def input_guardrail(
+    func: Optional[Callable[..., Any]] = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Awaitable[GuardrailFunctionOutput]]]:
     """Decorator for Gemini input guardrails."""
 
-    def decorator(inner: Callable[..., Any]) -> Callable[..., Awaitable[GuardrailFunctionOutput]]:
+    def decorator(
+        inner: Callable[..., Any],
+    ) -> Callable[..., Awaitable[GuardrailFunctionOutput]]:
         @functools.wraps(inner)
         async def wrapped(*args: Any, **kwargs: Any) -> GuardrailFunctionOutput:
             if inspect.iscoroutinefunction(inner):
@@ -112,10 +127,14 @@ def input_guardrail(func: Optional[Callable[..., Any]] = None) -> Callable[[Call
     return decorator
 
 
-def output_guardrail(func: Optional[Callable[..., Any]] = None) -> Callable[[Callable[..., Any]], Callable[..., Awaitable[GuardrailFunctionOutput]]]:
+def output_guardrail(
+    func: Optional[Callable[..., Any]] = None,
+) -> Callable[[Callable[..., Any]], Callable[..., Awaitable[GuardrailFunctionOutput]]]:
     """Decorator for Gemini output guardrails."""
 
-    def decorator(inner: Callable[..., Any]) -> Callable[..., Awaitable[GuardrailFunctionOutput]]:
+    def decorator(
+        inner: Callable[..., Any],
+    ) -> Callable[..., Awaitable[GuardrailFunctionOutput]]:
         @functools.wraps(inner)
         async def wrapped(*args: Any, **kwargs: Any) -> GuardrailFunctionOutput:
             if inspect.iscoroutinefunction(inner):
