@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Xerant tweet render</title>
+<style>
+  :root {
+    --bg: #000000;
+    --fg: #F5F5F5;
+    --fg-dim: #8A8A8E;
+    --yellow: #FFB800;
+    --border: #1F1F22;
+  }
+  html, body {
+    margin: 0; padding: 0;
+    width: 1080px; height: 1080px;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+  }
+  .stage {
+    position: relative;
+    width: 1080px; height: 1080px;
+    overflow: hidden;
+  }
+  .scene {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    will-change: opacity, transform;
+    gap: 0;
+  }
+  .mono {
+    font-family: "SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .sans { font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 900; }
+  .yellow { color: var(--yellow); }
+  .white  { color: var(--fg); }
+  .dim    { color: var(--fg-dim); }
+
+  /* Scene 1 */
+  .s1-line { font-size: 84px; letter-spacing: -0.03em; }
+
+  /* Scene 2 */
+  .s2-line { font-size: 180px; letter-spacing: -0.06em; line-height: 1; white-space: nowrap; }
+
+  /* Card scenes */
+  .card { gap: 24px; }
+  .card .label  { font-size: 54px; color: var(--fg); white-space: nowrap; }
+  .card .arrow  { font-size: 72px; color: var(--yellow); line-height: 1; }
+  .card .after  { font-size: 108px; color: var(--yellow); letter-spacing: -0.04em; line-height: 1; white-space: nowrap; }
+  .card .after.long { font-size: 88px; }
+  .card .after.big  { font-size: 140px; }
+
+  /* Scene 6 */
+  .s6 { gap: 8px; }
+  .s6-line { font-size: 116px; letter-spacing: -0.04em; line-height: 1.05; }
+
+  /* Scene 7 */
+  .s7 { gap: 18px; }
+  .s7-top    { font-size: 68px; color: var(--fg); }
+  .s7-free   { font-size: 180px; color: var(--yellow); letter-spacing: -0.03em; line-height: 1; }
+
+  /* Scene 8 */
+  .s8-url     { font-size: 150px; color: var(--yellow); letter-spacing: -0.03em; }
+  .s8-underline {
+    margin-top: 18px;
+    height: 8px;
+    background: var(--yellow);
+    width: 0%;
+    transition: none;
+  }
+
+  /* Subtle amber glow at bottom, matches hero */
+  .glow {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 320px;
+    background: radial-gradient(60% 120% at 50% 100%, rgba(255,184,0,0.05), transparent 60%);
+    pointer-events: none;
+  }
+  /* Outer tick frame, barely visible */
+  .frame {
+    position: absolute;
+    inset: 30px;
+    border: 1px solid rgba(255,184,0,0.08);
+    pointer-events: none;
+  }
+  /* Logo corner watermark */
+  .wm {
+    position: absolute;
+    top: 44px;
+    left: 44px;
+    font-family: "SF Mono", Menlo, monospace;
+    font-size: 20px;
+    letter-spacing: 0.18em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+  }
+  .wm .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: var(--yellow);
+    border-radius: 999px;
+    margin-right: 10px;
+    vertical-align: middle;
+    transform: translateY(-2px);
+  }
+
+  /* Progress bar at bottom */
+  .progress {
+    position: absolute;
+    left: 44px; right: 44px; bottom: 44px;
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+  }
+  .progress .fill {
+    height: 100%;
+    background: var(--yellow);
+    width: 0%;
+  }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+  <div class="frame"></div>
+  <div class="glow"></div>
+  <div class="wm"><span class="dot"></span>XERANT // DEPLOY LIFECYCLE</div>
+
+  <!-- Scene 1: Your DevOps team. -->
+  <div class="scene" id="s1">
+    <div class="sans white s1-line">Your DevOps team.</div>
+  </div>
+
+  <!-- Scene 2: REPLACED. -->
+  <div class="scene" id="s2">
+    <div class="sans yellow s2-line">REPLACED.</div>
+  </div>
+
+  <!-- Cards -->
+  <div class="scene card" id="s3">
+    <div class="mono label">PAGER DUTY</div>
+    <div class="arrow">&#8595;</div>
+    <div class="sans after">AGENT ON-CALL</div>
+  </div>
+  <div class="scene card" id="s4">
+    <div class="mono label">TERRAFORM PRs</div>
+    <div class="arrow">&#8595;</div>
+    <div class="sans after long">AGENT-AUTHORED</div>
+  </div>
+  <div class="scene card" id="s5">
+    <div class="mono label">INCIDENT TRIAGE</div>
+    <div class="arrow">&#8595;</div>
+    <div class="sans after big">AGENT-LED</div>
+  </div>
+
+  <!-- Scene 6: Humans chill. Agents ship. -->
+  <div class="scene s6" id="s6">
+    <div class="sans white  s6-line">Humans chill.</div>
+    <div class="sans yellow s6-line">Agents ship.</div>
+  </div>
+
+  <!-- Scene 7: First 100 users. Free. -->
+  <div class="scene s7" id="s7">
+    <div class="mono s7-top">FIRST 100 USERS</div>
+    <div class="sans s7-free">FREE.</div>
+  </div>
+
+  <!-- Scene 8: xerant.cloud -->
+  <div class="scene" id="s8">
+    <div class="sans s8-url">xerant.cloud</div>
+    <div class="s8-underline" id="s8u"></div>
+  </div>
+
+  <div class="progress"><div class="fill" id="progress"></div></div>
+</div>
+
+<script>
+  // Scene schedule [id, inStart, inEnd, outStart, outEnd]
+  // Timeline is a simple cross-fade design.
+  const SCHEDULE = [
+    ["s1", 0.20, 0.55, 1.55, 1.85],
+    ["s2", 1.90, 2.25, 3.35, 3.65],
+    ["s3", 3.75, 4.00, 5.25, 5.45],
+    ["s4", 5.55, 5.80, 7.05, 7.25],
+    ["s5", 7.35, 7.60, 8.85, 9.05],
+    ["s6", 9.15, 9.55, 11.70, 12.00],
+    ["s7", 12.10, 12.45, 13.15, 13.35],
+    ["s8", 13.45, 13.85, 14.90, 15.00],
+  ];
+  const DURATION = 15.0;
+
+  function ease(t){ return t<0.5 ? 2*t*t : 1-(-2*t+2)*(-2*t+2)/2; } // easeInOutQuad
+
+  function sceneAlpha(t, [_id, a, b, c, d]) {
+    if (t < a || t > d) return 0;
+    if (t < b) return ease((t - a) / (b - a));
+    if (t < c) return 1;
+    return 1 - ease((t - c) / (d - c));
+  }
+
+  // Scene 2 gets a small scale-up on entry, plus a micro-flicker
+  function sceneTransform(id, t, [ , a, b, c, d]) {
+    if (id === "s2") {
+      // scale from 0.88 → 1.0 as we fade in, tiny pop up then settle
+      const k = Math.max(0, Math.min(1, (t - a) / (b - a)));
+      const s = 0.88 + ease(k) * 0.12;
+      return `scale(${s})`;
+    }
+    if (id === "s6") {
+      // subtle y rise
+      const k = Math.max(0, Math.min(1, (t - a) / (b - a)));
+      const y = (1 - ease(k)) * 24;
+      return `translateY(${y}px)`;
+    }
+    if (id === "s1" || id === "s3" || id === "s4" || id === "s5") {
+      const k = Math.max(0, Math.min(1, (t - a) / (b - a)));
+      const y = (1 - ease(k)) * 16;
+      return `translateY(${y}px)`;
+    }
+    return "none";
+  }
+
+  window.renderAt = function renderAt(t) {
+    for (const entry of SCHEDULE) {
+      const [id] = entry;
+      const el = document.getElementById(id);
+      if (!el) continue;
+      const a = sceneAlpha(t, entry);
+      el.style.opacity = a.toFixed(4);
+      el.style.transform = sceneTransform(id, t, entry);
+    }
+    // Progress bar
+    const p = Math.max(0, Math.min(1, t / DURATION));
+    const pb = document.getElementById("progress");
+    if (pb) pb.style.width = (p * 100).toFixed(3) + "%";
+    // Scene 8 underline animation
+    const u = document.getElementById("s8u");
+    if (u) {
+      const u0 = 13.6, u1 = 14.6;
+      let uw = 0;
+      if (t >= u0) uw = Math.min(1, (t - u0) / (u1 - u0));
+      u.style.width = (uw * 62).toFixed(2) + "%";
+    }
+  };
+  // Initialize on load
+  renderAt(0);
+</script>
+</body>
+</html>

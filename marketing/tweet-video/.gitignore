@@ -1,0 +1,5 @@
+# Intermediate render artifacts — regenerate with render.sh
+renderer/frames/
+renderer/node_modules/
+# Top-level `.gitignore` excludes `out/` entirely; the final deliverable lives
+# at ./xerant-tweet.mp4 so it tracks cleanly.
