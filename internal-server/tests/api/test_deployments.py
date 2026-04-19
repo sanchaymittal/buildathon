@@ -1,10 +1,17 @@
-"""API tests for deployment routes."""
+"""API tests for deployment routes (legacy docker-py flow)."""
 
-from fastapi.testclient import TestClient
-from types import SimpleNamespace
+import pytest
 
-from src.api.app import app
-from src.api.dependencies import get_deploy_service
+# The legacy /deployments router only registers when docker-py is installed.
+# Skip the whole module cleanly otherwise so the MVP compose suite remains
+# the source of truth in minimal environments.
+docker = pytest.importorskip("docker")
+
+from fastapi.testclient import TestClient  # noqa: E402
+from types import SimpleNamespace  # noqa: E402
+
+from src.api.app import app  # noqa: E402
+from src.api.dependencies import get_deploy_service  # noqa: E402
 
 
 class DummyDeployService:
@@ -24,7 +31,7 @@ class DummyDeployService:
             url="http://localhost:8080",
             status="running",
             env=request.env,
-            labels={}
+            labels={},
         )
         self.created.append(deployment)
         return deployment
@@ -70,7 +77,7 @@ client = TestClient(app)
 def test_create_deployment():
     response = client.post(
         "/deployments",
-        json={"repository": "owner/repo", "branch": "main", "container_port": 8000}
+        json={"repository": "owner/repo", "branch": "main", "container_port": 8000},
     )
     assert response.status_code == 201
     data = response.json()
