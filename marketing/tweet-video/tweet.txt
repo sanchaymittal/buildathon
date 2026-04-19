@@ -1,11 +1,8 @@
-We're building a MaaS to kill our DevOps team.
+> deploy rates to staging, 10% canary
 
-Not "augment." Replace.
+Axiom plans. Forge codes. Warden scans. Vector ships. Sentry watches.
 
-→ Pager duty → agent on-call
-→ Terraform PRs → agent-authored
-→ Incident triage → agent-led
+Infrastructure as natural language.
+Five sandboxed agents. gVisor isolation. Free while in beta.
 
-Humans chill. Agents ship.
-
-First 100 users free. xerant.cloud
+xerant.cloud

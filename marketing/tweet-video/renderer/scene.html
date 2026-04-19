@@ -2,30 +2,123 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Xerant tweet render</title>
+<title>Xerant — launch video</title>
 <style>
-  :root {
-    --bg: #000000;
-    --fg: #F5F5F5;
-    --fg-dim: #8A8A8E;
-    --yellow: #FFB800;
-    --border: #1F1F22;
+  /* ---------- Fonts ---------- */
+  @font-face {
+    font-family: "Geist";
+    src: url("./fonts/geist-latin.woff2") format("woff2-variations"),
+         url("./fonts/geist-latin.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
   }
+  @font-face {
+    font-family: "Geist Mono";
+    src: url("./fonts/geist-mono-latin.woff2") format("woff2-variations"),
+         url("./fonts/geist-mono-latin.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: block;
+  }
+
+  /* ---------- Brand tokens (mirrored from xerant/src/components/brand/tokens.ts) ---------- */
+  :root {
+    --bg:         #000000;
+    --surface-1:  #0A0A0A;
+    --surface-2:  #111113;
+    --border:     #1F1F22;
+    --border-strong: #2A2A2E;
+    --fg:         #F5F5F5;
+    --fg-muted:   #8A8A8E;
+    --fg-dim:     #5A5A5E;
+    --accent:     #FFB800;
+    --danger:     #F87171;
+    --success:    #4ADE80;
+  }
+
+  /* ---------- Base ---------- */
   html, body {
     margin: 0; padding: 0;
     width: 1080px; height: 1080px;
     background: var(--bg);
     color: var(--fg);
-    font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-family: "Geist", "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-feature-settings: "ss01", "cv11";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow: hidden;
+    letter-spacing: -0.01em;
   }
   .stage {
     position: relative;
     width: 1080px; height: 1080px;
     overflow: hidden;
   }
+  .mono {
+    font-family: "Geist Mono", "SF Mono", ui-monospace, Menlo, monospace;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .sans { font-family: "Geist", "Inter", -apple-system, system-ui, sans-serif; }
+  .yellow { color: var(--accent); }
+  .white  { color: var(--fg); }
+  .muted  { color: var(--fg-muted); }
+  .dim    { color: var(--fg-dim); }
+  .red    { color: var(--danger); }
+
+  /* ---------- Chrome: header + frame + footer tick ---------- */
+  .frame {
+    position: absolute;
+    inset: 36px;
+    border: 1px solid rgba(255,184,0,0.08);
+    pointer-events: none;
+  }
+  .glow {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: 340px;
+    background: radial-gradient(60% 120% at 50% 100%, rgba(255,184,0,0.05), transparent 60%);
+    pointer-events: none;
+  }
+  .wm {
+    position: absolute;
+    top: 52px;
+    left: 52px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 18px;
+    letter-spacing: 0.18em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+  }
+  .wm .dot-live {
+    width: 9px; height: 9px;
+    background: var(--accent);
+    border-radius: 999px;
+    box-shadow: 0 0 0 0 rgba(255,184,0,0.6);
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,184,0,0.55); }
+    50%      { box-shadow: 0 0 0 8px rgba(255,184,0,0); }
+  }
+  .progress {
+    position: absolute;
+    left: 52px; right: 52px; bottom: 52px;
+    height: 2px;
+    background: rgba(255,255,255,0.06);
+  }
+  .progress .fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+  }
+
+  /* ---------- Scenes ---------- */
   .scene {
     position: absolute;
     inset: 0;
@@ -35,100 +128,254 @@
     justify-content: center;
     opacity: 0;
     will-change: opacity, transform;
-    gap: 0;
-  }
-  .mono {
-    font-family: "SF Mono", "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-  .sans { font-family: "Arial Black", "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 900; }
-  .yellow { color: var(--yellow); }
-  .white  { color: var(--fg); }
-  .dim    { color: var(--fg-dim); }
-
-  /* Scene 1 */
-  .s1-line { font-size: 84px; letter-spacing: -0.03em; }
-
-  /* Scene 2 */
-  .s2-line { font-size: 180px; letter-spacing: -0.06em; line-height: 1; white-space: nowrap; }
-
-  /* Card scenes */
-  .card { gap: 24px; }
-  .card .label  { font-size: 54px; color: var(--fg); white-space: nowrap; }
-  .card .arrow  { font-size: 72px; color: var(--yellow); line-height: 1; }
-  .card .after  { font-size: 108px; color: var(--yellow); letter-spacing: -0.04em; line-height: 1; white-space: nowrap; }
-  .card .after.long { font-size: 88px; }
-  .card .after.big  { font-size: 140px; }
-
-  /* Scene 6 */
-  .s6 { gap: 8px; }
-  .s6-line { font-size: 116px; letter-spacing: -0.04em; line-height: 1.05; }
-
-  /* Scene 7 */
-  .s7 { gap: 18px; }
-  .s7-top    { font-size: 68px; color: var(--fg); }
-  .s7-free   { font-size: 180px; color: var(--yellow); letter-spacing: -0.03em; line-height: 1; }
-
-  /* Scene 8 */
-  .s8-url     { font-size: 150px; color: var(--yellow); letter-spacing: -0.03em; }
-  .s8-underline {
-    margin-top: 18px;
-    height: 8px;
-    background: var(--yellow);
-    width: 0%;
-    transition: none;
   }
 
-  /* Subtle amber glow at bottom, matches hero */
-  .glow {
-    position: absolute;
-    inset-inline: 0;
-    bottom: 0;
-    height: 320px;
-    background: radial-gradient(60% 120% at 50% 100%, rgba(255,184,0,0.05), transparent 60%);
-    pointer-events: none;
+  /* Act 1 — pain terminal */
+  #s1 {
+    justify-content: center;
   }
-  /* Outer tick frame, barely visible */
-  .frame {
-    position: absolute;
-    inset: 30px;
-    border: 1px solid rgba(255,184,0,0.08);
-    pointer-events: none;
+  .term-card {
+    width: 880px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    padding: 38px 44px 40px;
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 26px;
+    line-height: 1.9;
   }
-  /* Logo corner watermark */
-  .wm {
-    position: absolute;
-    top: 44px;
-    left: 44px;
-    font-family: "SF Mono", Menlo, monospace;
-    font-size: 20px;
+  .term-card .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
     letter-spacing: 0.18em;
     color: var(--fg-dim);
     text-transform: uppercase;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 22px;
   }
-  .wm .dot {
-    display: inline-block;
-    width: 10px; height: 10px;
-    background: var(--yellow);
-    border-radius: 999px;
-    margin-right: 10px;
-    vertical-align: middle;
-    transform: translateY(-2px);
+  .term-card .head .dots { display: inline-flex; gap: 8px; }
+  .term-card .head .dot { width: 10px; height: 10px; border-radius: 999px; }
+  .term-card .head .d1 { background: #4f4f54; }
+  .term-card .head .d2 { background: #4f4f54; }
+  .term-card .head .d3 { background: var(--danger); }
+  .term-row {
+    display: grid;
+    grid-template-columns: 110px 1fr auto;
+    gap: 22px;
+    align-items: baseline;
+    opacity: 0;
+    transform: translateY(8px);
+    position: relative;
+  }
+  .term-row .tag {
+    color: var(--danger);
+    letter-spacing: 0.04em;
+  }
+  .term-row .msg { color: var(--fg); }
+  .term-row .cost { color: var(--fg-muted); font-size: 22px; letter-spacing: 0.02em; }
+  .term-row .redact {
+    position: absolute;
+    left: -10px; right: -10px;
+    top: 0; bottom: 0;
+    background: var(--accent);
+    transform-origin: left center;
+    transform: scaleX(0);
+    mix-blend-mode: normal;
   }
 
-  /* Progress bar at bottom */
-  .progress {
-    position: absolute;
-    left: 44px; right: 44px; bottom: 44px;
-    height: 3px;
-    background: rgba(255,255,255,0.08);
+  /* Act 2 — NL prompt */
+  #s2 .prompt-card {
+    width: 820px;
+    padding: 56px 64px;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
   }
-  .progress .fill {
-    height: 100%;
-    background: var(--yellow);
+  #s2 .prompt-eyebrow {
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  #s2 .prompt-line {
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 42px;
+    color: var(--fg);
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+    white-space: pre;
+  }
+  #s2 .prompt-line .chev { color: var(--accent); }
+  #s2 .prompt-line .cur {
+    display: inline-block;
+    width: 18px;
+    height: 40px;
+    background: var(--accent);
+    vertical-align: text-bottom;
+    margin-left: 6px;
+    transform: translateY(4px);
+    animation: blink 0.85s steps(2, end) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Act 3 — agent pipeline + cards */
+  #s3 .pipeline {
+    position: absolute;
+    top: 260px; left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 18px;
+  }
+  #s3 .pipeline .node {
+    width: 14px; height: 14px; border-radius: 999px;
+    border: 2px solid var(--border-strong);
+    background: transparent;
+  }
+  #s3 .pipeline .node.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    transform: scale(1.25);
+  }
+  #s3 .pipeline .node.done {
+    border-color: var(--fg);
+    background: transparent;
+  }
+  #s3 .pipeline .conn {
+    width: 60px; height: 1px;
+    background: var(--border-strong);
+    position: relative;
+  }
+  #s3 .pipeline .conn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform-origin: left center;
+    transform: scaleX(0);
+    transition: none;
+  }
+  #s3 .pipeline .conn.done::after { transform: scaleX(1); }
+
+  #s3 .card-area {
+    position: absolute;
+    top: 340px; left: 0; right: 0; bottom: 220px;
+  }
+  .agent-card {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 0 60px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  .agent-card .role {
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 16px;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .agent-card .name {
+    font-family: "Geist", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 148px;
+    line-height: 0.95;
+    letter-spacing: -0.045em;
+    color: var(--fg);
+  }
+  .agent-card .stage {
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 24px;
+    color: var(--fg-muted);
+    letter-spacing: 0;
+  }
+  .agent-card .stage .accent { color: var(--accent); }
+
+  /* Act 4 — claim */
+  #s4 {
+    justify-content: center;
+  }
+  #s4 .claim {
+    font-family: "Geist", system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 110px;
+    line-height: 1.02;
+    letter-spacing: -0.045em;
+    color: var(--fg);
+    text-align: center;
+  }
+  #s4 .claim .hl {
+    color: var(--accent);
+    display: inline-block;
+    position: relative;
+  }
+  #s4 .underline {
+    display: block;
+    height: 6px;
+    background: var(--accent);
+    margin: 22px auto 0;
     width: 0%;
+    max-width: 760px;
+  }
+
+  /* Act 5 — CTA */
+  #s5 {
+    justify-content: center;
+    gap: 18px;
+  }
+  #s5 .mark-wrap {
+    width: 240px; height: 240px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #s5 .wordmark {
+    font-family: "Geist", system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 120px;
+    letter-spacing: -0.035em;
+    color: var(--fg);
+    line-height: 1;
+    margin-top: 20px;
+  }
+  #s5 .url {
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 44px;
+    color: var(--accent);
+    letter-spacing: 0;
+    margin-top: 16px;
+  }
+  #s5 .beta {
+    margin-top: 44px;
+    font-family: "Geist Mono", ui-monospace, Menlo, monospace;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    color: var(--fg-muted);
+    text-transform: uppercase;
+  }
+  #s5 .beta .sep { color: var(--fg-dim); margin: 0 12px; }
+
+  /* SVG draw-in — stroke dash for grid, fade for amber */
+  #s5 .mark-svg {
+    width: 220px; height: 220px;
+  }
+  #s5 .mark-svg .grid line {
+    stroke-dasharray: 460;
+    stroke-dashoffset: 460;
+  }
+  #s5 .mark-svg .amber line {
+    opacity: 0;
+  }
+  #s5 .mark-svg .corners circle,
+  #s5 .mark-svg .center-node {
+    opacity: 0;
   }
 </style>
 </head>
@@ -136,126 +383,357 @@
 <div class="stage" id="stage">
   <div class="frame"></div>
   <div class="glow"></div>
-  <div class="wm"><span class="dot"></span>XERANT // DEPLOY LIFECYCLE</div>
 
-  <!-- Scene 1: Your DevOps team. -->
+  <div class="wm">
+    <span class="dot-live"></span>
+    <span>XERANT&nbsp;&nbsp;//&nbsp;&nbsp;LIVE SIMULATION</span>
+  </div>
+
+  <!-- ============= ACT 1 — PAIN ============= -->
   <div class="scene" id="s1">
-    <div class="sans white s1-line">Your DevOps team.</div>
+    <div class="term-card">
+      <div class="head">
+        <span>SRE TERMINAL · TUE 19 NOV</span>
+        <span class="dots"><span class="dot d1"></span><span class="dot d2"></span><span class="dot d3"></span></span>
+      </div>
+      <div class="term-row" id="t1"><span class="tag">[03:47]</span><span class="msg">PAGER &nbsp;·&nbsp; rates-api p99 &gt; 2s</span><span class="cost">·&nbsp;3rd time this week</span><div class="redact"></div></div>
+      <div class="term-row" id="t2"><span class="tag">[09:12]</span><span class="msg">PR #847 &nbsp;·&nbsp; 14 reviewers · 0 approvals</span><span class="cost">·&nbsp;idle 36h</span><div class="redact"></div></div>
+      <div class="term-row" id="t3"><span class="tag">[14:28]</span><span class="msg">ON-CALL ROTATION &nbsp;·&nbsp; 3 engineers</span><span class="cost">·&nbsp;$480K/yr</span><div class="redact"></div></div>
+    </div>
   </div>
 
-  <!-- Scene 2: REPLACED. -->
+  <!-- ============= ACT 2 — ASK ============= -->
   <div class="scene" id="s2">
-    <div class="sans yellow s2-line">REPLACED.</div>
+    <div class="prompt-card">
+      <div class="prompt-eyebrow">XERANT · COMMAND</div>
+      <div class="prompt-line">
+        <span class="chev">&gt;&nbsp;</span><span id="typed"></span><span class="cur"></span>
+      </div>
+    </div>
   </div>
 
-  <!-- Cards -->
-  <div class="scene card" id="s3">
-    <div class="mono label">PAGER DUTY</div>
-    <div class="arrow">&#8595;</div>
-    <div class="sans after">AGENT ON-CALL</div>
-  </div>
-  <div class="scene card" id="s4">
-    <div class="mono label">TERRAFORM PRs</div>
-    <div class="arrow">&#8595;</div>
-    <div class="sans after long">AGENT-AUTHORED</div>
-  </div>
-  <div class="scene card" id="s5">
-    <div class="mono label">INCIDENT TRIAGE</div>
-    <div class="arrow">&#8595;</div>
-    <div class="sans after big">AGENT-LED</div>
+  <!-- ============= ACT 3 — AGENTS ============= -->
+  <div class="scene" id="s3">
+    <!-- Pipeline -->
+    <div class="pipeline">
+      <div class="node" data-i="0"></div>
+      <div class="conn"   data-i="0"></div>
+      <div class="node" data-i="1"></div>
+      <div class="conn"   data-i="1"></div>
+      <div class="node" data-i="2"></div>
+      <div class="conn"   data-i="2"></div>
+      <div class="node" data-i="3"></div>
+      <div class="conn"   data-i="3"></div>
+      <div class="node" data-i="4"></div>
+    </div>
+
+    <!-- Agent cards (stack, one visible at a time) -->
+    <div class="card-area">
+      <div class="agent-card" data-i="0">
+        <div class="role">01 · ORCHESTRATOR</div>
+        <div class="name">AXIOM</div>
+        <div class="stage">decomposing <span class="accent">·</span> <span class="accent">4</span> subtasks identified</div>
+      </div>
+      <div class="agent-card" data-i="1">
+        <div class="role">02 · STAFF ENGINEER</div>
+        <div class="name">FORGE</div>
+        <div class="stage">src/api/rates.ts <span class="accent">·</span> <span class="accent">+47 −12</span> · tests updated</div>
+      </div>
+      <div class="agent-card" data-i="2">
+        <div class="role">03 · SECURITY ENGINEER</div>
+        <div class="name">WARDEN</div>
+        <div class="stage">semgrep · trivy · gitleaks <span class="accent">·</span> <span class="accent">0</span> critical</div>
+      </div>
+      <div class="agent-card" data-i="3">
+        <div class="role">04 · DEPLOYER</div>
+        <div class="name">VECTOR</div>
+        <div class="stage">canary <span class="accent">10% → 100%</span> · xerant/rates:a7f2e1</div>
+      </div>
+      <div class="agent-card" data-i="4">
+        <div class="role">05 · OBSERVER</div>
+        <div class="name">SENTRY</div>
+        <div class="stage">p99 clear <span class="accent">·</span> <span class="accent">✓ deployed 2m 14s</span></div>
+      </div>
+    </div>
   </div>
 
-  <!-- Scene 6: Humans chill. Agents ship. -->
-  <div class="scene s6" id="s6">
-    <div class="sans white  s6-line">Humans chill.</div>
-    <div class="sans yellow s6-line">Agents ship.</div>
+  <!-- ============= ACT 4 — CLAIM ============= -->
+  <div class="scene" id="s4">
+    <div>
+      <div class="claim">
+        Infrastructure
+        <br/>
+        as <span class="hl">natural language.</span>
+      </div>
+      <div class="underline" id="u4"></div>
+    </div>
   </div>
 
-  <!-- Scene 7: First 100 users. Free. -->
-  <div class="scene s7" id="s7">
-    <div class="mono s7-top">FIRST 100 USERS</div>
-    <div class="sans s7-free">FREE.</div>
-  </div>
-
-  <!-- Scene 8: xerant.cloud -->
-  <div class="scene" id="s8">
-    <div class="sans s8-url">xerant.cloud</div>
-    <div class="s8-underline" id="s8u"></div>
+  <!-- ============= ACT 5 — CTA ============= -->
+  <div class="scene" id="s5">
+    <div class="mark-wrap">
+      <svg class="mark-svg" viewBox="0 0 400 400" role="img" aria-label="Xerant">
+        <title>Xerant</title>
+        <g transform="translate(200 200)">
+          <g class="grid" stroke="#2A2A2E" stroke-width="2" fill="none">
+            <line x1="-110" y1="-110" x2="110"  y2="-110"/>
+            <line x1="110"  y1="-110" x2="110"  y2="110"/>
+            <line x1="110"  y1="110"  x2="-110" y2="110"/>
+            <line x1="-110" y1="110"  x2="-110" y2="-110"/>
+          </g>
+          <g class="amber" stroke="#FFB800" stroke-width="7" stroke-linecap="round">
+            <line x1="-90" y1="-90" x2="-22" y2="-22"/>
+            <line x1="22"  y1="22"  x2="90"  y2="90"/>
+            <line x1="90"  y1="-90" x2="22"  y2="-22"/>
+            <line x1="-22" y1="22"  x2="-90" y2="90"/>
+          </g>
+          <g class="corners" fill="#000000" stroke="#F5F5F5" stroke-width="5">
+            <circle cx="-110" cy="-110" r="15"/>
+            <circle cx="110"  cy="-110" r="15"/>
+            <circle cx="-110" cy="110"  r="15"/>
+            <circle cx="110"  cy="110"  r="15"/>
+          </g>
+          <circle class="center-node" cx="0" cy="0" r="18" fill="#FFB800"/>
+        </g>
+      </svg>
+    </div>
+    <div class="wordmark">XERANT</div>
+    <div class="url">xerant.cloud</div>
+    <div class="beta">
+      SANDBOXED DEVOPS AGENTS <span class="sep">/</span> FREE WHILE IN BETA
+    </div>
   </div>
 
   <div class="progress"><div class="fill" id="progress"></div></div>
 </div>
 
 <script>
-  // Scene schedule [id, inStart, inEnd, outStart, outEnd]
-  // Timeline is a simple cross-fade design.
-  const SCHEDULE = [
-    ["s1", 0.20, 0.55, 1.55, 1.85],
-    ["s2", 1.90, 2.25, 3.35, 3.65],
-    ["s3", 3.75, 4.00, 5.25, 5.45],
-    ["s4", 5.55, 5.80, 7.05, 7.25],
-    ["s5", 7.35, 7.60, 8.85, 9.05],
-    ["s6", 9.15, 9.55, 11.70, 12.00],
-    ["s7", 12.10, 12.45, 13.15, 13.35],
-    ["s8", 13.45, 13.85, 14.90, 15.00],
-  ];
+  // ----------------------------------------------------------------
+  // Timeline (15s total)
+  // ----------------------------------------------------------------
   const DURATION = 15.0;
 
-  function ease(t){ return t<0.5 ? 2*t*t : 1-(-2*t+2)*(-2*t+2)/2; } // easeInOutQuad
+  // Scene fades: [id, in_start, in_end, out_start, out_end]
+  const SCENES = [
+    ["s1", 0.10, 0.45, 2.55, 2.85],   // pain
+    ["s2", 2.95, 3.25, 4.75, 5.00],   // NL prompt
+    ["s3", 5.05, 5.35, 10.80, 11.00], // 5 agents
+    ["s4", 11.05, 11.40, 12.85, 13.05], // claim
+    ["s5", 13.10, 13.55, 15.50, 15.80], // CTA — held visible through final frame
+  ];
 
-  function sceneAlpha(t, [_id, a, b, c, d]) {
+  // --- Act 1 terminal-row reveals (relative to s1 start) ---
+  // t0=0.55 for first line, then .36 apart; redact at 2.25
+  const TERM_ROWS = [
+    { id: "t1", in: 0.55, redact: 2.30 },
+    { id: "t2", in: 0.95, redact: 2.40 },
+    { id: "t3", in: 1.35, redact: 2.50 },
+  ];
+
+  // --- Act 2 typing ---
+  const TYPED_FULL = "deploy rates to staging, 10% canary";
+  const TYPE_START = 3.25;   // start typing
+  const TYPE_END   = 4.65;   // last char landed
+
+  // --- Act 3 agent cards ---
+  // Each agent gets ~1.18s visible. Slight cross-fade.
+  // Start at s3 in_end (5.35) so pipeline is already visible.
+  const AGENT_ORDER = 5;
+  const AGENT_T0 = 5.35;
+  const AGENT_DUR = 1.13;
+  const AGENT_GAP = 0.02; // near-instant cut
+  const AGENT_FADE_IN = 0.18;
+  const AGENT_FADE_OUT = 0.14;
+
+  // --- Act 4 underline sweep ---
+  const U4_START = 11.60;
+  const U4_END   = 12.70;
+
+  // --- Act 5 mark draw-in ---
+  const MARK_START = 13.55;
+  const MARK_GRID_END = 14.10;   // dasharray draw
+  const MARK_AMBER_END = 14.45;  // amber fade
+  const MARK_NODES_END = 14.75;  // corner circles + center dot
+
+  // ----------------------------------------------------------------
+  // Easing
+  // ----------------------------------------------------------------
+  const clamp01 = (x) => Math.max(0, Math.min(1, x));
+  const easeInOut = (t) => t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t + 2, 2)/2;
+  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+
+  function sceneAlpha(t, [, a, b, c, d]) {
     if (t < a || t > d) return 0;
-    if (t < b) return ease((t - a) / (b - a));
+    if (t < b) return easeInOut((t - a) / (b - a));
     if (t < c) return 1;
-    return 1 - ease((t - c) / (d - c));
+    return 1 - easeInOut((t - c) / (d - c));
   }
 
-  // Scene 2 gets a small scale-up on entry, plus a micro-flicker
-  function sceneTransform(id, t, [ , a, b, c, d]) {
-    if (id === "s2") {
-      // scale from 0.88 → 1.0 as we fade in, tiny pop up then settle
-      const k = Math.max(0, Math.min(1, (t - a) / (b - a)));
-      const s = 0.88 + ease(k) * 0.12;
-      return `scale(${s})`;
-    }
-    if (id === "s6") {
-      // subtle y rise
-      const k = Math.max(0, Math.min(1, (t - a) / (b - a)));
-      const y = (1 - ease(k)) * 24;
-      return `translateY(${y}px)`;
-    }
-    if (id === "s1" || id === "s3" || id === "s4" || id === "s5") {
-      const k = Math.max(0, Math.min(1, (t - a) / (b - a)));
-      const y = (1 - ease(k)) * 16;
-      return `translateY(${y}px)`;
-    }
-    return "none";
+  // Slight slide-up entrance per scene
+  function sceneTransform(t, [, a, b]) {
+    if (t < a) return "translateY(0px)";
+    const k = clamp01((t - a) / Math.max(0.001, b - a));
+    const y = (1 - easeOutCubic(k)) * 18;
+    return `translateY(${y}px)`;
   }
 
+  // ----------------------------------------------------------------
+  // Render at time t
+  // ----------------------------------------------------------------
   window.renderAt = function renderAt(t) {
-    for (const entry of SCHEDULE) {
-      const [id] = entry;
-      const el = document.getElementById(id);
+    // Scenes
+    for (const entry of SCENES) {
+      const el = document.getElementById(entry[0]);
       if (!el) continue;
-      const a = sceneAlpha(t, entry);
-      el.style.opacity = a.toFixed(4);
-      el.style.transform = sceneTransform(id, t, entry);
+      el.style.opacity = sceneAlpha(t, entry).toFixed(4);
+      el.style.transform = sceneTransform(t, entry);
     }
+
+    // --- Act 1 rows ---
+    const s1a = SCENES[0][1];
+    for (const row of TERM_ROWS) {
+      const el = document.getElementById(row.id);
+      if (!el) continue;
+      const tInScene = t - s1a;
+      // fade-in
+      let op = 0, y = 8;
+      if (tInScene >= row.in) {
+        const k = clamp01((tInScene - row.in) / 0.18);
+        op = easeOutCubic(k);
+        y = (1 - easeOutCubic(k)) * 8;
+      }
+      el.style.opacity = op.toFixed(3);
+      el.style.transform = `translateY(${y}px)`;
+      // yellow redact sweep
+      const redact = el.querySelector(".redact");
+      if (redact) {
+        let r = 0;
+        if (tInScene >= row.redact) {
+          r = clamp01((tInScene - row.redact) / 0.22);
+          r = easeInOut(r);
+        }
+        redact.style.transform = `scaleX(${r.toFixed(3)})`;
+      }
+    }
+
+    // --- Act 2 typing ---
+    const typedEl = document.getElementById("typed");
+    if (typedEl) {
+      if (t < TYPE_START) typedEl.textContent = "";
+      else if (t >= TYPE_END) typedEl.textContent = TYPED_FULL;
+      else {
+        const k = (t - TYPE_START) / (TYPE_END - TYPE_START);
+        const n = Math.floor(k * TYPED_FULL.length);
+        typedEl.textContent = TYPED_FULL.slice(0, n);
+      }
+    }
+
+    // --- Act 3 pipeline + cards ---
+    const cards = document.querySelectorAll("#s3 .agent-card");
+    const nodes = document.querySelectorAll("#s3 .pipeline .node");
+    const conns = document.querySelectorAll("#s3 .pipeline .conn");
+
+    // active agent index (0..4)
+    let activeIdx = -1;
+    for (let i = 0; i < AGENT_ORDER; i++) {
+      const a = AGENT_T0 + i * (AGENT_DUR + AGENT_GAP);
+      const b = a + AGENT_DUR;
+      if (t >= a - 0.05 && t <= b + 0.05) activeIdx = i;
+    }
+
+    for (let i = 0; i < AGENT_ORDER; i++) {
+      const a = AGENT_T0 + i * (AGENT_DUR + AGENT_GAP);
+      const b = a + AGENT_DUR;
+      const card = cards[i];
+      if (!card) continue;
+      let op = 0, y = 16;
+      if (t >= a && t <= b) {
+        if (t < a + AGENT_FADE_IN) {
+          const k = (t - a) / AGENT_FADE_IN;
+          op = easeOutCubic(k);
+          y = (1 - easeOutCubic(k)) * 16;
+        } else if (t > b - AGENT_FADE_OUT) {
+          const k = (b - t) / AGENT_FADE_OUT;
+          op = easeInOut(k);
+          y = (1 - easeInOut(k)) * -10;
+        } else {
+          op = 1; y = 0;
+        }
+      }
+      card.style.opacity = op.toFixed(3);
+      card.style.transform = `translateY(${y}px)`;
+    }
+
+    nodes.forEach((n, i) => {
+      n.classList.remove("active", "done");
+      if (i < activeIdx) n.classList.add("done");
+      if (i === activeIdx) n.classList.add("active");
+    });
+    conns.forEach((c, i) => {
+      c.classList.toggle("done", i < activeIdx);
+    });
+    // If we're past the last agent (success state at s4/s5), everything done
+    if (t > AGENT_T0 + AGENT_ORDER * (AGENT_DUR + AGENT_GAP)) {
+      nodes.forEach((n) => { n.classList.remove("active"); n.classList.add("done"); });
+      conns.forEach((c) => c.classList.add("done"));
+    }
+
+    // --- Act 4 underline ---
+    const u4 = document.getElementById("u4");
+    if (u4) {
+      let w = 0;
+      if (t >= U4_START) {
+        const k = clamp01((t - U4_START) / (U4_END - U4_START));
+        w = easeInOut(k) * 100;
+      }
+      u4.style.width = w.toFixed(2) + "%";
+    }
+
+    // --- Act 5 mark draw-in ---
+    const gridLines = document.querySelectorAll("#s5 .mark-svg .grid line");
+    const amberLines = document.querySelectorAll("#s5 .mark-svg .amber line");
+    const corners = document.querySelectorAll("#s5 .mark-svg .corners circle");
+    const center = document.querySelector("#s5 .mark-svg .center-node");
+
+    // Grid draw (stroke-dashoffset 460 -> 0)
+    {
+      let k = 0;
+      if (t >= MARK_START) {
+        k = clamp01((t - MARK_START) / (MARK_GRID_END - MARK_START));
+        k = easeInOut(k);
+      }
+      gridLines.forEach((ln) => {
+        ln.style.strokeDashoffset = (460 * (1 - k)).toFixed(2);
+      });
+    }
+    // Amber fade
+    {
+      let k = 0;
+      if (t >= MARK_GRID_END - 0.15) {
+        k = clamp01((t - (MARK_GRID_END - 0.15)) / (MARK_AMBER_END - (MARK_GRID_END - 0.15)));
+        k = easeOutCubic(k);
+      }
+      amberLines.forEach((ln) => { ln.style.opacity = k.toFixed(3); });
+    }
+    // Corner + center nodes
+    {
+      let k = 0;
+      if (t >= MARK_AMBER_END - 0.15) {
+        k = clamp01((t - (MARK_AMBER_END - 0.15)) / (MARK_NODES_END - (MARK_AMBER_END - 0.15)));
+        k = easeOutCubic(k);
+      }
+      corners.forEach((c) => { c.style.opacity = k.toFixed(3); });
+      if (center) center.style.opacity = k.toFixed(3);
+    }
+
     // Progress bar
-    const p = Math.max(0, Math.min(1, t / DURATION));
+    const p = clamp01(t / DURATION);
     const pb = document.getElementById("progress");
     if (pb) pb.style.width = (p * 100).toFixed(3) + "%";
-    // Scene 8 underline animation
-    const u = document.getElementById("s8u");
-    if (u) {
-      const u0 = 13.6, u1 = 14.6;
-      let uw = 0;
-      if (t >= u0) uw = Math.min(1, (t - u0) / (u1 - u0));
-      u.style.width = (uw * 62).toFixed(2) + "%";
-    }
   };
-  // Initialize on load
-  renderAt(0);
+
+  // Initialize at t=0
+  window.renderAt(0);
 </script>
 </body>
 </html>
