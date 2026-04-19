@@ -28,17 +28,37 @@ class Team:
     sentry_factory: Callable[[], Agent]
 
 
+def _default_model() -> str:
+    """Pick the default model from the credential manager, falling back.
+
+    This lets ``DEVOPS_GEMINI__MODEL`` / the credentials file route every
+    team agent without having to override kwargs everywhere.
+    """
+    try:
+        from ...core.credentials import get_credential_manager
+
+        return get_credential_manager().get_gemini_credentials().model
+    except Exception:
+        return "gemini-2.5-pro"
+
+
 def build_team(
     *,
-    orchestrator_model: str = "gemini-2.5-pro",
-    peer_model: str = "gemini-2.5-pro",
+    orchestrator_model: Optional[str] = None,
+    peer_model: Optional[str] = None,
     runner_factory: Optional[Callable[[], Any]] = None,
 ) -> Team:
     """Return a :class:`Team` whose Axiom agent has handoff tools wired.
 
-    ``runner_factory`` is forwarded to each handoff tool so tests can
-    inject a fake runner for every peer without monkey-patching.
+    When ``orchestrator_model`` / ``peer_model`` are ``None`` the default
+    model from :class:`GeminiCredentials` is used. ``runner_factory`` is
+    forwarded to each handoff tool so tests can inject a fake runner for
+    every peer without monkey-patching.
     """
+    default = _default_model()
+    orchestrator_model = orchestrator_model or default
+    peer_model = peer_model or default
+
     forge_factory = lambda: build_forge(model=peer_model)
     warden_factory = lambda: build_warden(model=peer_model)
     vector_factory = lambda: build_vector(model=peer_model)
